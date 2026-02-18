@@ -47,8 +47,24 @@ struct SetupView: View {
                         .fontWeight(.medium)
 
                     HStack(spacing: 24) {
-                        Stepper("Hours: \(viewModel.hours)", value: $viewModel.hours, in: 0...24)
-                        Stepper("Minutes: \(viewModel.minutes)", value: $viewModel.minutes, in: 0...59, step: 5)
+                        Stepper(value: $viewModel.hours, in: 0...24) {
+                            HStack(spacing: 4) {
+                                Text("Hours:")
+                                TextField("", value: $viewModel.hours, format: .number)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 44)
+                                    .multilineTextAlignment(.center)
+                            }
+                        }
+                        Stepper(value: $viewModel.minutes, in: 0...59) {
+                            HStack(spacing: 4) {
+                                Text("Minutes:")
+                                TextField("", value: $viewModel.minutes, format: .number)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 44)
+                                    .multilineTextAlignment(.center)
+                            }
+                        }
                     }
                 }
 
