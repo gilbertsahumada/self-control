@@ -6,24 +6,17 @@ let package = Package(
     platforms: [
         .macOS(.v13)
     ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0")
-    ],
     targets: [
         .target(
             name: "BlockSitesCore",
             path: "Sources/BlockSitesCore"
         ),
         .executableTarget(
-            name: "BlockSites",
+            name: "BlockSitesApp",
             dependencies: [
-                "BlockSitesCore",
-                .product(name: "ArgumentParser", package: "swift-argument-parser")
+                "BlockSitesCore"
             ],
-            path: "Sources/BlockSites",
-            swiftSettings: [
-                .unsafeFlags(["-parse-as-library"])
-            ]
+            path: "Sources/BlockSitesApp"
         ),
         .executableTarget(
             name: "BlockSitesEnforcer",

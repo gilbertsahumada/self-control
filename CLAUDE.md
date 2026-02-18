@@ -4,41 +4,57 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-BlockSites is a macOS CLI tool (Swift 5.9+, macOS 13+) that blocks websites for a set duration with no way to undo until the timer expires. It uses dual-layer blocking (DNS via `/etc/hosts` + firewall via macOS `pf`) and a background daemon that re-enforces blocks every 60 seconds. Includes an interactive TUI mode and a live countdown status display.
+BlockSites is a native macOS SwiftUI app (Swift 5.9+, macOS 13+) that blocks websites for a set duration with no way to undo until the timer expires. It uses dual-layer blocking (DNS via `/etc/hosts` + firewall via macOS `pf`) and a background daemon that re-enforces blocks every 60 seconds. The app uses `NSAppleScript` for privilege escalation via the native macOS password dialog.
 
 ## Build & Run
 
 ```bash
 swift build                    # Debug build
 swift build -c release         # Release build
+swift test                     # Run tests (50 tests in BlockSitesCore)
 
 # Install after building
-sudo cp .build/release/BlockSites /usr/local/bin/blocksites
+sudo cp .build/release/BlockSitesApp /usr/local/bin/blocksites
 sudo cp .build/release/BlockSitesEnforcer /usr/local/bin/blocksites-enforcer
 
-# Usage (requires root)
-sudo blocksites                                        # Interactive TUI mode
-sudo blocksites --hours 2 --sites facebook.com,twitter.com
-sudo blocksites --minutes 30 --sites instagram.com
-blocksites --status                                    # Live countdown
+# Run (no sudo needed — app requests admin privileges via password dialog)
+.build/debug/BlockSitesApp
 ```
-
-No test suite or linter is configured.
 
 ## Architecture
 
-Two executable targets in `Sources/`:
+Three targets in `Sources/`:
 
-- **BlockSites/** — Main CLI with interactive TUI.
-  - `main.swift` — `BlockSites` command (argument-parser) with interactive mode, confirmation flow, and live status. Contains `BlockManager` (singleton) for blocking operations.
-  - `TerminalUI.swift` — ANSI escape code utilities: colors, box-drawing (`┌─┐│└─┘├┤`), progress bar, cursor control, input helpers.
-  - `FirewallManager.swift` — Manages pf anchor rules. Includes `removePfAnchor()` to clean anchor references from `/etc/pf.conf` on unblock.
-  - `BlockConfiguration.swift` — Codable data model.
+- **BlockSitesCore/** — Shared library with pure business logic.
+  - `BlockConfiguration.swift` — Codable data model (sites, startTime, endTime).
+  - `DomainExpander.swift` — Domain expansion (subdomains, CIDR ranges, DoH blocking).
+  - `HostsGenerator.swift` — Generates/cleans `/etc/hosts` entries.
+  - `TimeFormatter.swift` — Duration formatting utilities.
+
+- **BlockSitesApp/** — SwiftUI macOS app (replaces the old CLI/TUI).
+  - `BlockSitesApp.swift` — `@main` SwiftUI App entry point with `WindowGroup`.
+  - `ContentView.swift` — Switches between SetupView and ActiveBlockView.
+  - `Views/SetupView.swift` — Site toggles, custom domain field, duration picker, "Start Blocking" button.
+  - `Views/ActiveBlockView.swift` — Countdown timer, progress bar, blocked sites list.
+  - `ViewModels/BlockViewModel.swift` — All state + blocking logic. Generates file contents in memory, writes to temp files, builds a single shell script for privileged execution.
+  - `Services/PrivilegedExecutor.swift` — `NSAppleScript` admin privilege escalation (one password prompt per action).
+  - `Services/FirewallManager.swift` — IP resolution + pf rule generation (in-memory, no root needed). IPCache struct matches the enforcer's.
+  - `Models/PopularSite.swift` — Predefined popular sites (Instagram, Facebook, Twitter/X, YouTube, TikTok, Reddit).
 
 - **BlockSitesEnforcer/** — Background daemon launched via LaunchDaemon. Runs every 60 seconds to re-apply blocks if the user tampers with `/etc/hosts` or firewall rules. Auto-unloads itself when the timer expires.
   - `main.swift` — Enforcement logic (apply/remove blocks).
   - `ProcessHelper.swift` — Shared `runCommand()` helper with `waitUntilExit()`.
   - `FirewallManager.swift` — Simplified firewall manager for re-applying cached rules. Also cleans pf.conf anchors on removal.
+
+### Blocking flow (SwiftUI app)
+
+1. User selects sites + duration in the UI, clicks "Start Blocking", confirms
+2. App generates all file contents in memory (hosts entries, pf rules, config JSON, IP cache, daemon plist)
+3. App writes these to temp files (no root needed)
+4. App builds a single shell script that copies temp files to system paths + runs pfctl + flushes DNS + loads daemon
+5. `PrivilegedExecutor` runs the script via `NSAppleScript` — one password prompt
+6. Temp files cleaned up
+7. UI switches to active block countdown
 
 ### Blocking mechanism
 
@@ -48,7 +64,7 @@ Two executable targets in `Sources/`:
 
 ### Cleanup on expiry
 
-Both targets perform full cleanup when the timer expires:
+The enforcer performs full cleanup when the timer expires:
 - Removes BLOCKSITES entries from `/etc/hosts` and flushes DNS cache (including `mDNSResponder`)
 - Removes pf anchor file and cleans anchor references from `/etc/pf.conf`
 - Deletes `config.json`, `ip_cache.json`, `hosts.backup`
@@ -64,9 +80,9 @@ Both targets perform full cleanup when the timer expires:
 
 ### Code patterns
 
-- Singleton pattern: `BlockManager.shared`, `FirewallManager.shared`
-- File-based JSON persistence using `Codable`
-- Requires root (`getuid() == 0`) for all blocking operations
-- Block/subdomain logic is duplicated between BlockSites and BlockSitesEnforcer targets — keep them in sync when modifying
-- TUI uses raw ANSI escape codes (no external dependency) via `TerminalUI` enum
-- All `Process` calls use `waitUntilExit()` — enforcer uses `ProcessHelper.runCommand()`, main target uses `BlockManager.runCommand()`
+- `ObservableObject` + `@Published` + `@StateObject`/`@EnvironmentObject` for macOS 13 compatibility
+- `PrivilegedExecutor` uses `NSAppleScript` for admin privilege escalation — no `sudo` or `getuid() == 0` checks in the app
+- `FirewallManager` (app) generates data in memory; `FirewallManager` (enforcer) reads from cached files on disk
+- IPCache struct must stay in sync between `Sources/BlockSitesApp/Services/FirewallManager.swift` and `Sources/BlockSitesEnforcer/FirewallManager.swift`
+- DomainExpander logic lives in BlockSitesCore — shared by both app and enforcer
+- All `Process` calls in enforcer use `waitUntilExit()` via `ProcessHelper.runCommand()`
