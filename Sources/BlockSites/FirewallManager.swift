@@ -1,4 +1,5 @@
 import Foundation
+import BlockSitesCore
 
 class FirewallManager {
     static let shared = FirewallManager()
@@ -9,36 +10,62 @@ class FirewallManager {
 
     struct IPCache: Codable {
         var ips: [String: [String]]  // domain -> [IPs]
+        var cidrs: [String: [String]]?  // domain -> [CIDR ranges]
+        var dohIPs: [String]?  // DNS-over-HTTPS provider IPs
         var lastUpdated: Date
     }
 
     func blockSitesWithFirewall(_ sites: [String]) throws {
         // Resolve domains to IPs (including key subdomains)
         var domainIPs: [String: [String]] = [:]
+        var domainCIDRs: [String: [String]] = [:]
 
         for site in sites {
             var allIPs: [String] = []
 
-            // Resolve main domain and www
-            let domainsToResolve = expandDomainsForFirewall(site)
+            // Resolve main domain and key subdomains
+            let domainsToResolve = DomainExpander.expandDomainsForFirewall(site)
             for domain in domainsToResolve {
-                if let ips = try? resolveIPs(for: domain) {
+                do {
+                    let ips = try resolveIPs(for: domain)
                     allIPs.append(contentsOf: ips)
+                } catch {
+                    fputs("Warning: Could not resolve IPs for \(domain): \(error.localizedDescription)\n", stderr)
                 }
             }
 
             // Deduplicate
             domainIPs[site] = Array(Set(allIPs))
+
+            // Get CIDR ranges for the site
+            let cidrs = DomainExpander.cidrRanges(for: site)
+            if !cidrs.isEmpty {
+                domainCIDRs[site] = cidrs
+            }
         }
 
         // Create pf anchor rules
         var rules = "# BlockSites firewall rules\n"
 
+        // Per-IP rules from DNS resolution
         for (_, ips) in domainIPs {
             for ip in ips {
                 rules += "block drop quick from any to \(ip)\n"
                 rules += "block drop quick from \(ip) to any\n"
             }
+        }
+
+        // CIDR range rules (blocks entire network ranges — can't be bypassed by rotating IPs)
+        for (_, cidrs) in domainCIDRs {
+            for cidr in cidrs {
+                rules += "block drop quick from any to \(cidr)\n"
+                rules += "block drop quick from \(cidr) to any\n"
+            }
+        }
+
+        // Block DNS-over-HTTPS providers on port 443 (leaves regular DNS on port 53 working)
+        for ip in DomainExpander.dohIPs {
+            rules += "block drop quick proto tcp from any to \(ip) port 443\n"
         }
 
         // Write rules to anchor file
@@ -50,8 +77,13 @@ class FirewallManager {
         // Load the rules
         try loadFirewallRules()
 
-        // Cache IPs for enforcer
-        let cache = IPCache(ips: domainIPs, lastUpdated: Date())
+        // Cache IPs, CIDRs, and DoH IPs for enforcer
+        let cache = IPCache(
+            ips: domainIPs,
+            cidrs: domainCIDRs.isEmpty ? nil : domainCIDRs,
+            dohIPs: DomainExpander.dohIPs,
+            lastUpdated: Date()
+        )
         let encoder = JSONEncoder()
         if let data = try? encoder.encode(cache) {
             try? data.write(to: URL(fileURLWithPath: ipCachePath))
@@ -83,29 +115,6 @@ class FirewallManager {
 
         let cleanedConf = cleanedLines.joined(separator: "\n")
         try? cleanedConf.write(toFile: pfConfPath, atomically: true, encoding: .utf8)
-    }
-
-    private func expandDomainsForFirewall(_ site: String) -> [String] {
-        var domains = [site, "www.\(site)"]
-
-        switch site {
-        case "instagram.com":
-            domains += ["i.instagram.com", "graph.instagram.com", "scontent.cdninstagram.com", "cdninstagram.com", "edge-chat.instagram.com"]
-        case "facebook.com":
-            domains += ["m.facebook.com", "web.facebook.com", "graph.facebook.com", "fbcdn.net", "fbcdn.com", "connect.facebook.net", "static.facebook.com"]
-        case "twitter.com", "x.com":
-            domains += ["api.x.com", "api.twitter.com", "t.co", "twimg.com", "pbs.twimg.com"]
-        case "youtube.com":
-            domains += ["m.youtube.com", "youtu.be", "googlevideo.com", "ytimg.com"]
-        case "tiktok.com":
-            domains += ["m.tiktok.com", "vm.tiktok.com"]
-        case "reddit.com":
-            domains += ["old.reddit.com", "i.redd.it", "v.redd.it", "redd.it"]
-        default:
-            break
-        }
-
-        return domains
     }
 
     private func resolveIPs(for domain: String) throws -> [String] {

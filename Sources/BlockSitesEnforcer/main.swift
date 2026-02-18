@@ -1,16 +1,11 @@
 import Foundation
+import BlockSitesCore
 
 // This is the daemon enforcer - runs every minute to ensure blocks stay active
 
 let configPath = "/Library/Application Support/BlockSites/config.json"
 let hostsPath = "/etc/hosts"
 let marker = "# BLOCKSITES"
-
-struct BlockConfiguration: Codable {
-    let sites: [String]
-    let startTime: Date
-    let endTime: Date
-}
 
 func loadConfiguration() -> BlockConfiguration? {
     guard FileManager.default.fileExists(atPath: configPath),
@@ -27,119 +22,10 @@ func applyBlocks(_ sites: [String]) {
     }
 
     // Remove old blocks
-    let lines = hostsContent.components(separatedBy: .newlines)
-    hostsContent = lines.filter { !$0.contains(marker) }.joined(separator: "\n")
+    hostsContent = HostsGenerator.cleanHostsContent(hostsContent, marker: marker)
 
     // Add new blocks
-    var blockEntries = "\n\(marker) START\n"
-    for site in sites {
-        // Block main domain
-        blockEntries += "127.0.0.1 \(site) \(marker)\n"
-        blockEntries += "127.0.0.1 www.\(site) \(marker)\n"
-
-        // Block common subdomains for problematic sites
-        let commonSubdomains = ["mobile", "m", "api", "static", "cdn", "pbs", "abs", "video"]
-        for subdomain in commonSubdomains {
-            blockEntries += "127.0.0.1 \(subdomain).\(site) \(marker)\n"
-        }
-
-        // Special handling for X/Twitter
-        if site == "x.com" || site == "twitter.com" {
-            let xDomains = [
-                "x.com", "www.x.com", "mobile.x.com", "api.x.com",
-                "twitter.com", "www.twitter.com", "mobile.twitter.com", "api.twitter.com",
-                "t.co", "www.t.co",
-                "twimg.com", "pbs.twimg.com", "abs.twimg.com", "video.twimg.com"
-            ]
-            for domain in xDomains {
-                blockEntries += "127.0.0.1 \(domain) \(marker)\n"
-            }
-        }
-
-        // Special handling for Instagram
-        if site == "instagram.com" {
-            let igDomains = [
-                "instagram.com", "www.instagram.com", "i.instagram.com",
-                "graph.instagram.com", "edge-chat.instagram.com",
-                "scontent.cdninstagram.com", "cdninstagram.com",
-                "www.cdninstagram.com", "static.cdninstagram.com",
-                "scontent-*.cdninstagram.com",
-                "l.instagram.com", "b.i.instagram.com",
-                "about.instagram.com", "help.instagram.com",
-                "web.instagram.com", "d.instagram.com",
-                "z-p3-graph.instagram.com", "z-p4-graph.instagram.com"
-            ]
-            for domain in igDomains {
-                blockEntries += "127.0.0.1 \(domain) \(marker)\n"
-            }
-        }
-
-        // Special handling for Facebook
-        if site == "facebook.com" {
-            let fbDomains = [
-                "facebook.com", "www.facebook.com", "m.facebook.com",
-                "web.facebook.com", "mobile.facebook.com",
-                "graph.facebook.com", "edge-chat.facebook.com",
-                "static.facebook.com", "staticxx.facebook.com",
-                "upload.facebook.com", "l.facebook.com",
-                "fbcdn.net", "static.xx.fbcdn.net", "scontent.xx.fbcdn.net",
-                "video.xx.fbcdn.net", "external.xx.fbcdn.net",
-                "fbcdn.com", "connect.facebook.net",
-                "star.facebook.com", "z-m-graph.facebook.com"
-            ]
-            for domain in fbDomains {
-                blockEntries += "127.0.0.1 \(domain) \(marker)\n"
-            }
-        }
-
-        // Special handling for YouTube
-        if site == "youtube.com" {
-            let ytDomains = [
-                "youtube.com", "www.youtube.com", "m.youtube.com",
-                "youtu.be", "www.youtu.be",
-                "youtube-nocookie.com", "www.youtube-nocookie.com",
-                "googlevideo.com", "www.googlevideo.com",
-                "ytimg.com", "i.ytimg.com", "s.ytimg.com",
-                "music.youtube.com", "tv.youtube.com",
-                "accounts.youtube.com", "studio.youtube.com"
-            ]
-            for domain in ytDomains {
-                blockEntries += "127.0.0.1 \(domain) \(marker)\n"
-            }
-        }
-
-        // Special handling for TikTok
-        if site == "tiktok.com" {
-            let ttDomains = [
-                "tiktok.com", "www.tiktok.com", "m.tiktok.com",
-                "vm.tiktok.com", "t.tiktok.com",
-                "sf-tb-sg.ibytedtos.com", "v16m-default.akamaized.net",
-                "mon.musical.ly", "log.tiktokv.com",
-                "ib.tiktokv.com", "api.tiktokv.com"
-            ]
-            for domain in ttDomains {
-                blockEntries += "127.0.0.1 \(domain) \(marker)\n"
-            }
-        }
-
-        // Special handling for Reddit
-        if site == "reddit.com" {
-            let rdDomains = [
-                "reddit.com", "www.reddit.com", "old.reddit.com",
-                "new.reddit.com", "i.reddit.com", "m.reddit.com",
-                "sh.reddit.com", "oauth.reddit.com",
-                "redd.it", "i.redd.it", "v.redd.it", "preview.redd.it",
-                "external-preview.redd.it", "www.redditmedia.com",
-                "redditstatic.com", "www.redditstatic.com"
-            ]
-            for domain in rdDomains {
-                blockEntries += "127.0.0.1 \(domain) \(marker)\n"
-            }
-        }
-    }
-    blockEntries += "\(marker) END\n"
-
-    hostsContent += blockEntries
+    hostsContent += HostsGenerator.generateHostsEntries(for: sites, marker: marker)
 
     try? hostsContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
 
@@ -156,8 +42,7 @@ func removeBlocks() {
         return
     }
 
-    let lines = hostsContent.components(separatedBy: .newlines)
-    let cleanedContent = lines.filter { !$0.contains(marker) }.joined(separator: "\n")
+    let cleanedContent = HostsGenerator.cleanHostsContent(hostsContent, marker: marker)
 
     try? cleanedContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
 

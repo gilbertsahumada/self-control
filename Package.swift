@@ -10,9 +10,14 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0")
     ],
     targets: [
+        .target(
+            name: "BlockSitesCore",
+            path: "Sources/BlockSitesCore"
+        ),
         .executableTarget(
             name: "BlockSites",
             dependencies: [
+                "BlockSitesCore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser")
             ],
             path: "Sources/BlockSites",
@@ -22,7 +27,15 @@ let package = Package(
         ),
         .executableTarget(
             name: "BlockSitesEnforcer",
+            dependencies: [
+                "BlockSitesCore"
+            ],
             path: "Sources/BlockSitesEnforcer"
+        ),
+        .testTarget(
+            name: "BlockSitesCoreTests",
+            dependencies: ["BlockSitesCore"],
+            path: "Tests/BlockSitesCoreTests"
         )
     ]
 )

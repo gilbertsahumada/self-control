@@ -1,5 +1,6 @@
 import Foundation
 import ArgumentParser
+import BlockSitesCore
 
 @main
 struct BlockSites: ParsableCommand {
@@ -45,7 +46,7 @@ struct BlockSites: ParsableCommand {
         }
 
         guard durationInSeconds > 0, let sites = sites else {
-            TerminalUI.printError("Debes especificar duración y sitios")
+            TerminalUI.printError("You must specify duration and sites")
             print("")
             print("  \(TerminalUI.dim)blocksites --hours 2 --sites facebook.com,twitter.com\(TerminalUI.reset)")
             print("  \(TerminalUI.dim)blocksites --minutes 30 --sites instagram.com\(TerminalUI.reset)")
@@ -58,7 +59,7 @@ struct BlockSites: ParsableCommand {
         // Show confirmation
         guard showConfirmation(sites: siteList, seconds: durationInSeconds) else {
             print("")
-            TerminalUI.printWarning("Cancelado.")
+            TerminalUI.printWarning("Cancelled.")
             return
         }
 
@@ -69,18 +70,18 @@ struct BlockSites: ParsableCommand {
         formatter.dateFormat = "dd/MM/yyyy HH:mm"
 
         print("")
-        TerminalUI.printSuccess("Bloqueados \(siteList.count) sitio(s) hasta \(formatter.string(from: endTime))")
-        print("  \(TerminalUI.dim)Sitios: \(siteList.joined(separator: ", "))\(TerminalUI.reset)")
+        TerminalUI.printSuccess("Blocked \(siteList.count) site(s) until \(formatter.string(from: endTime))")
+        print("  \(TerminalUI.dim)Sites: \(siteList.joined(separator: ", "))\(TerminalUI.reset)")
         print("")
-        TerminalUI.printWarning("NO se puede deshacer hasta que expire el timer.")
+        TerminalUI.printWarning("Cannot be undone until timer expires.")
     }
 
     // MARK: - Interactive Mode
 
     func runInteractiveMode() throws {
         guard getuid() == 0 else {
-            TerminalUI.printError("El modo interactivo requiere root")
-            print("  \(TerminalUI.dim)Ejecuta: sudo blocksites\(TerminalUI.reset)")
+            TerminalUI.printError("Interactive mode requires root")
+            print("  \(TerminalUI.dim)Run: sudo blocksites\(TerminalUI.reset)")
             throw ExitCode.failure
         }
 
@@ -92,15 +93,15 @@ struct BlockSites: ParsableCommand {
                     TerminalUI.centerText("\(TerminalUI.boldCyan)BLOCKSITES v1.0\(TerminalUI.reset)", width: width - 2)
                 ],
                 body: [
-                    "  \(TerminalUI.boldWhite)[1]\(TerminalUI.reset) Bloquear sitios",
-                    "  \(TerminalUI.boldWhite)[2]\(TerminalUI.reset) Ver estado",
-                    "  \(TerminalUI.boldWhite)[3]\(TerminalUI.reset) Salir",
+                    "  \(TerminalUI.boldWhite)[1]\(TerminalUI.reset) Block sites",
+                    "  \(TerminalUI.boldWhite)[2]\(TerminalUI.reset) View status",
+                    "  \(TerminalUI.boldWhite)[3]\(TerminalUI.reset) Exit",
                     ""
                 ],
                 width: width
             )
 
-            let choice = TerminalUI.readInput(prompt: "  Elige una opción: ")
+            let choice = TerminalUI.readInput(prompt: "  Choose an option: ")
 
             switch choice.trimmingCharacters(in: .whitespaces) {
             case "1":
@@ -110,7 +111,7 @@ struct BlockSites: ParsableCommand {
             case "3":
                 return
             default:
-                TerminalUI.printError("Opción no válida")
+                TerminalUI.printError("Invalid option")
                 Thread.sleep(forTimeInterval: 1)
             }
         }
@@ -118,32 +119,32 @@ struct BlockSites: ParsableCommand {
 
     func interactiveBlock() throws {
         TerminalUI.clearScreen()
-        print("\(TerminalUI.boldCyan)  BLOQUEAR SITIOS\(TerminalUI.reset)")
+        print("\(TerminalUI.boldCyan)  BLOCK SITES\(TerminalUI.reset)")
         print("")
 
-        let sitesInput = TerminalUI.readInput(prompt: "  Sitios (separados por coma): ")
+        let sitesInput = TerminalUI.readInput(prompt: "  Sites (comma-separated): ")
         guard !sitesInput.trimmingCharacters(in: .whitespaces).isEmpty else {
-            TerminalUI.printError("No ingresaste sitios")
+            TerminalUI.printError("No sites entered")
             Thread.sleep(forTimeInterval: 1.5)
             return
         }
 
         let siteList = sitesInput.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         guard !siteList.isEmpty else {
-            TerminalUI.printError("No ingresaste sitios válidos")
+            TerminalUI.printError("No valid sites entered")
             Thread.sleep(forTimeInterval: 1.5)
             return
         }
 
-        let hoursInput = TerminalUI.readInput(prompt: "  Horas (0 si solo minutos): ")
-        let minsInput = TerminalUI.readInput(prompt: "  Minutos (0 si solo horas): ")
+        let hoursInput = TerminalUI.readInput(prompt: "  Hours (0 if minutes only): ")
+        let minsInput = TerminalUI.readInput(prompt: "  Minutes (0 if hours only): ")
 
         let h = Double(hoursInput.trimmingCharacters(in: .whitespaces)) ?? 0
         let m = Double(minsInput.trimmingCharacters(in: .whitespaces)) ?? 0
         let totalSeconds = h * 3600 + m * 60
 
         guard totalSeconds > 0 else {
-            TerminalUI.printError("La duración debe ser mayor a 0")
+            TerminalUI.printError("Duration must be greater than 0")
             Thread.sleep(forTimeInterval: 1.5)
             return
         }
@@ -151,7 +152,7 @@ struct BlockSites: ParsableCommand {
         print("")
         guard showConfirmation(sites: siteList, seconds: totalSeconds) else {
             print("")
-            TerminalUI.printWarning("Cancelado.")
+            TerminalUI.printWarning("Cancelled.")
             Thread.sleep(forTimeInterval: 1.5)
             return
         }
@@ -163,9 +164,9 @@ struct BlockSites: ParsableCommand {
         formatter.dateFormat = "dd/MM/yyyy HH:mm"
 
         print("")
-        TerminalUI.printSuccess("Bloqueados \(siteList.count) sitio(s) hasta \(formatter.string(from: endTime))")
+        TerminalUI.printSuccess("Blocked \(siteList.count) site(s) until \(formatter.string(from: endTime))")
         print("")
-        print("  \(TerminalUI.dim)Presiona Enter para continuar...\(TerminalUI.reset)")
+        print("  \(TerminalUI.dim)Press Enter to continue...\(TerminalUI.reset)")
         _ = readLine()
     }
 
@@ -177,18 +178,18 @@ struct BlockSites: ParsableCommand {
         formatter.dateFormat = "dd/MM/yyyy HH:mm"
 
         print("")
-        TerminalUI.printWarning("Vas a bloquear:")
+        TerminalUI.printWarning("You are about to block:")
         for site in sites {
-            let subCount = TerminalUI.subdomainCount(for: site)
-            print("    \(TerminalUI.boldWhite)•\(TerminalUI.reset) \(site) \(TerminalUI.dim)(+ \(subCount) subdominios)\(TerminalUI.reset)")
+            let subCount = DomainExpander.subdomainCount(for: site)
+            print("    \(TerminalUI.boldWhite)•\(TerminalUI.reset) \(site) \(TerminalUI.dim)(+ \(subCount) subdomains)\(TerminalUI.reset)")
         }
         print("")
-        print("    \(TerminalUI.boldYellow)Duración:\(TerminalUI.reset) \(TerminalUI.formatDurationShort(seconds))")
-        print("    \(TerminalUI.boldYellow)Hasta:\(TerminalUI.reset)    \(formatter.string(from: endTime))")
+        print("    \(TerminalUI.boldYellow)Duration:\(TerminalUI.reset) \(TimeFormatter.formatDurationShort(seconds))")
+        print("    \(TerminalUI.boldYellow)Until:\(TerminalUI.reset)    \(formatter.string(from: endTime))")
         print("")
-        TerminalUI.printWarning("NO se puede deshacer.")
+        TerminalUI.printWarning("Cannot be undone.")
         print("")
-        return TerminalUI.confirm(prompt: "  ¿Continuar?")
+        return TerminalUI.confirm(prompt: "  Continue?")
     }
 
     // MARK: - Live Status
@@ -197,9 +198,9 @@ struct BlockSites: ParsableCommand {
         guard let config = try BlockManager.shared.loadConfiguration() else {
             print("")
             TerminalUI.printBox([
-                "  \(TerminalUI.boldGreen)🔓  SIN BLOQUEOS ACTIVOS\(TerminalUI.reset)",
+                "  \(TerminalUI.boldGreen)🔓  NO ACTIVE BLOCKS\(TerminalUI.reset)",
                 "",
-                "  \(TerminalUI.dim)No hay sitios bloqueados\(TerminalUI.reset)",
+                "  \(TerminalUI.dim)No sites blocked\(TerminalUI.reset)",
                 ""
             ])
             return
@@ -209,9 +210,9 @@ struct BlockSites: ParsableCommand {
         guard config.endTime > now else {
             print("")
             TerminalUI.printBox([
-                "  \(TerminalUI.boldGreen)🔓  SIN BLOQUEOS ACTIVOS\(TerminalUI.reset)",
+                "  \(TerminalUI.boldGreen)🔓  NO ACTIVE BLOCKS\(TerminalUI.reset)",
                 "",
-                "  \(TerminalUI.dim)El bloqueo anterior ya expiró\(TerminalUI.reset)",
+                "  \(TerminalUI.dim)Previous block has expired\(TerminalUI.reset)",
                 ""
             ])
             return
@@ -243,9 +244,9 @@ struct BlockSites: ParsableCommand {
                 TerminalUI.showCursor()
                 print("")
                 TerminalUI.printBox([
-                    "  \(TerminalUI.boldGreen)🔓  BLOQUEO EXPIRADO\(TerminalUI.reset)",
+                    "  \(TerminalUI.boldGreen)🔓  BLOCK EXPIRED\(TerminalUI.reset)",
                     "",
-                    "  \(TerminalUI.dim)Los sitios ya están desbloqueados\(TerminalUI.reset)",
+                    "  \(TerminalUI.dim)Sites are now unblocked\(TerminalUI.reset)",
                     ""
                 ])
                 return
@@ -259,20 +260,20 @@ struct BlockSites: ParsableCommand {
             print("")
             TerminalUI.printBoxWithDivider(
                 header: [
-                    "  \(TerminalUI.boldRed)🔒  BLOQUEO ACTIVO\(TerminalUI.reset)"
+                    "  \(TerminalUI.boldRed)🔒  ACTIVE BLOCK\(TerminalUI.reset)"
                 ],
                 body: [
-                    "  \(TerminalUI.dim)Sitios:\(TerminalUI.reset) \(sitesStr)",
-                    "  \(TerminalUI.dim)Inicio:\(TerminalUI.reset) \(startStr)",
-                    "  \(TerminalUI.dim)Fin:\(TerminalUI.reset)    \(endStr)",
+                    "  \(TerminalUI.dim)Sites:\(TerminalUI.reset) \(sitesStr)",
+                    "  \(TerminalUI.dim)Start:\(TerminalUI.reset) \(startStr)",
+                    "  \(TerminalUI.dim)End:\(TerminalUI.reset)   \(endStr)",
                     "",
-                    "  \(TerminalUI.boldYellow)Restante: \(TerminalUI.formatDuration(remaining))\(TerminalUI.reset)",
+                    "  \(TerminalUI.boldYellow)Remaining: \(TimeFormatter.formatDuration(remaining))\(TerminalUI.reset)",
                     "  \(TerminalUI.progressBar(progress: progress))",
                     ""
                 ],
                 width: 39
             )
-            print("  \(TerminalUI.dim)Presiona Ctrl+C para salir\(TerminalUI.reset)")
+            print("  \(TerminalUI.dim)Press Ctrl+C to exit\(TerminalUI.reset)")
 
             Thread.sleep(forTimeInterval: 1)
         }
@@ -319,7 +320,12 @@ class BlockManager {
 
         // Apply firewall blocks (more aggressive)
         print("Applying firewall rules...")
-        try? FirewallManager.shared.blockSitesWithFirewall(sites)
+        do {
+            try FirewallManager.shared.blockSitesWithFirewall(sites)
+        } catch {
+            TerminalUI.printWarning("Firewall rules could not be applied: \(error.localizedDescription)")
+            TerminalUI.printWarning("DNS-level blocking is still active, but firewall layer failed.")
+        }
 
         // Install daemon
         try installDaemon()
@@ -332,119 +338,10 @@ class BlockManager {
         var hostsContent = try String(contentsOfFile: hostsPath, encoding: .utf8)
 
         // Remove old blocks
-        let lines = hostsContent.components(separatedBy: .newlines)
-        hostsContent = lines.filter { !$0.contains(marker) }.joined(separator: "\n")
+        hostsContent = HostsGenerator.cleanHostsContent(hostsContent, marker: marker)
 
         // Add new blocks
-        var blockEntries = "\n\(marker) START\n"
-        for site in sites {
-            // Block main domain
-            blockEntries += "127.0.0.1 \(site) \(marker)\n"
-            blockEntries += "127.0.0.1 www.\(site) \(marker)\n"
-
-            // Block common subdomains for problematic sites
-            let commonSubdomains = ["mobile", "m", "api", "static", "cdn", "pbs", "abs", "video"]
-            for subdomain in commonSubdomains {
-                blockEntries += "127.0.0.1 \(subdomain).\(site) \(marker)\n"
-            }
-
-            // Special handling for X/Twitter
-            if site == "x.com" || site == "twitter.com" {
-                let xDomains = [
-                    "x.com", "www.x.com", "mobile.x.com", "api.x.com",
-                    "twitter.com", "www.twitter.com", "mobile.twitter.com", "api.twitter.com",
-                    "t.co", "www.t.co",
-                    "twimg.com", "pbs.twimg.com", "abs.twimg.com", "video.twimg.com"
-                ]
-                for domain in xDomains {
-                    blockEntries += "127.0.0.1 \(domain) \(marker)\n"
-                }
-            }
-
-            // Special handling for Instagram
-            if site == "instagram.com" {
-                let igDomains = [
-                    "instagram.com", "www.instagram.com", "i.instagram.com",
-                    "graph.instagram.com", "edge-chat.instagram.com",
-                    "scontent.cdninstagram.com", "cdninstagram.com",
-                    "www.cdninstagram.com", "static.cdninstagram.com",
-                    "scontent-*.cdninstagram.com",
-                    "l.instagram.com", "b.i.instagram.com",
-                    "about.instagram.com", "help.instagram.com",
-                    "web.instagram.com", "d.instagram.com",
-                    "z-p3-graph.instagram.com", "z-p4-graph.instagram.com"
-                ]
-                for domain in igDomains {
-                    blockEntries += "127.0.0.1 \(domain) \(marker)\n"
-                }
-            }
-
-            // Special handling for Facebook
-            if site == "facebook.com" {
-                let fbDomains = [
-                    "facebook.com", "www.facebook.com", "m.facebook.com",
-                    "web.facebook.com", "mobile.facebook.com",
-                    "graph.facebook.com", "edge-chat.facebook.com",
-                    "static.facebook.com", "staticxx.facebook.com",
-                    "upload.facebook.com", "l.facebook.com",
-                    "fbcdn.net", "static.xx.fbcdn.net", "scontent.xx.fbcdn.net",
-                    "video.xx.fbcdn.net", "external.xx.fbcdn.net",
-                    "fbcdn.com", "connect.facebook.net",
-                    "star.facebook.com", "z-m-graph.facebook.com"
-                ]
-                for domain in fbDomains {
-                    blockEntries += "127.0.0.1 \(domain) \(marker)\n"
-                }
-            }
-
-            // Special handling for YouTube
-            if site == "youtube.com" {
-                let ytDomains = [
-                    "youtube.com", "www.youtube.com", "m.youtube.com",
-                    "youtu.be", "www.youtu.be",
-                    "youtube-nocookie.com", "www.youtube-nocookie.com",
-                    "googlevideo.com", "www.googlevideo.com",
-                    "ytimg.com", "i.ytimg.com", "s.ytimg.com",
-                    "music.youtube.com", "tv.youtube.com",
-                    "accounts.youtube.com", "studio.youtube.com"
-                ]
-                for domain in ytDomains {
-                    blockEntries += "127.0.0.1 \(domain) \(marker)\n"
-                }
-            }
-
-            // Special handling for TikTok
-            if site == "tiktok.com" {
-                let ttDomains = [
-                    "tiktok.com", "www.tiktok.com", "m.tiktok.com",
-                    "vm.tiktok.com", "t.tiktok.com",
-                    "sf-tb-sg.ibytedtos.com", "v16m-default.akamaized.net",
-                    "mon.musical.ly", "log.tiktokv.com",
-                    "ib.tiktokv.com", "api.tiktokv.com"
-                ]
-                for domain in ttDomains {
-                    blockEntries += "127.0.0.1 \(domain) \(marker)\n"
-                }
-            }
-
-            // Special handling for Reddit
-            if site == "reddit.com" {
-                let rdDomains = [
-                    "reddit.com", "www.reddit.com", "old.reddit.com",
-                    "new.reddit.com", "i.reddit.com", "m.reddit.com",
-                    "sh.reddit.com", "oauth.reddit.com",
-                    "redd.it", "i.redd.it", "v.redd.it", "preview.redd.it",
-                    "external-preview.redd.it", "www.redditmedia.com",
-                    "redditstatic.com", "www.redditstatic.com"
-                ]
-                for domain in rdDomains {
-                    blockEntries += "127.0.0.1 \(domain) \(marker)\n"
-                }
-            }
-        }
-        blockEntries += "\(marker) END\n"
-
-        hostsContent += blockEntries
+        hostsContent += HostsGenerator.generateHostsEntries(for: sites, marker: marker)
 
         try hostsContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
 
@@ -458,8 +355,7 @@ class BlockManager {
             return
         }
 
-        let lines = hostsContent.components(separatedBy: .newlines)
-        let cleanedContent = lines.filter { !$0.contains(marker) }.joined(separator: "\n")
+        let cleanedContent = HostsGenerator.cleanHostsContent(hostsContent, marker: marker)
 
         try cleanedContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
 

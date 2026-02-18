@@ -8,6 +8,8 @@ class FirewallManager {
 
     struct IPCache: Codable {
         var ips: [String: [String]]
+        var cidrs: [String: [String]]?
+        var dohIPs: [String]?
         var lastUpdated: Date
     }
 
@@ -21,10 +23,28 @@ class FirewallManager {
         // Recreate rules from cache
         var rules = "# BlockSites firewall rules\n"
 
+        // Per-IP rules
         for (_, ips) in cache.ips {
             for ip in ips {
                 rules += "block drop quick from any to \(ip)\n"
                 rules += "block drop quick from \(ip) to any\n"
+            }
+        }
+
+        // CIDR range rules
+        if let cidrs = cache.cidrs {
+            for (_, cidrList) in cidrs {
+                for cidr in cidrList {
+                    rules += "block drop quick from any to \(cidr)\n"
+                    rules += "block drop quick from \(cidr) to any\n"
+                }
+            }
+        }
+
+        // DoH blocking rules (port 443 only)
+        if let dohIPs = cache.dohIPs {
+            for ip in dohIPs {
+                rules += "block drop quick proto tcp from any to \(ip) port 443\n"
             }
         }
 

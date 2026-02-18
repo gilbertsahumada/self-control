@@ -1,4 +1,5 @@
 import Foundation
+import BlockSitesCore
 
 enum TerminalUI {
     // MARK: - ANSI Color Codes
@@ -112,51 +113,24 @@ enum TerminalUI {
     }
 
     static func confirm(prompt: String) -> Bool {
-        let input = readInput(prompt: "\(prompt) [s/N] ")
+        let input = readInput(prompt: "\(prompt) [y/N] ")
         return input.lowercased() == "s" || input.lowercased() == "si" || input.lowercased() == "y" || input.lowercased() == "yes"
     }
 
-    // MARK: - Time Formatting
+    // MARK: - Time Formatting (delegates to BlockSitesCore)
 
     static func formatDuration(_ seconds: TimeInterval) -> String {
-        let h = Int(seconds) / 3600
-        let m = (Int(seconds) % 3600) / 60
-        let s = Int(seconds) % 60
-
-        if h > 0 {
-            return "\(h)h \(m)m \(s)s"
-        } else if m > 0 {
-            return "\(m)m \(s)s"
-        } else {
-            return "\(s)s"
-        }
+        return TimeFormatter.formatDuration(seconds)
     }
 
     static func formatDurationShort(_ seconds: TimeInterval) -> String {
-        let h = Int(seconds) / 3600
-        let m = (Int(seconds) % 3600) / 60
-
-        if h > 0 && m > 0 {
-            return "\(h)h \(m)m"
-        } else if h > 0 {
-            return "\(h)h"
-        } else {
-            return "\(m)m"
-        }
+        return TimeFormatter.formatDurationShort(seconds)
     }
 
-    // MARK: - Subdomain Count
+    // MARK: - Subdomain Count (delegates to BlockSitesCore)
 
     static func subdomainCount(for site: String) -> Int {
-        let commonSubdomains = ["mobile", "m", "api", "static", "cdn", "pbs", "abs", "video"]
-        var count = 1 + commonSubdomains.count // main + www is included in common, actually www + common
-
-        if site == "x.com" || site == "twitter.com" {
-            // Extra Twitter/X domains
-            count += 14
-        }
-
-        return count
+        return DomainExpander.subdomainCount(for: site)
     }
 
     // MARK: - Helpers
