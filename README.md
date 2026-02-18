@@ -1,60 +1,68 @@
 # BlockSites
 
-Herramienta minimalista de terminal para bloquear sitios web en macOS por un período de tiempo definido. Una vez activado, **no se puede desactivar** hasta que expire el tiempo.
+A minimalist macOS CLI tool to block websites for a set duration. Once activated, **there is no way to undo it** until the timer expires.
 
-## Instalación
+## Installation
 
 ```bash
-# Compilar
+# Build
 swift build -c release
 
-# Instalar binarios
+# Install binaries
 sudo cp .build/release/BlockSites /usr/local/bin/blocksites
 sudo cp .build/release/BlockSitesEnforcer /usr/local/bin/blocksites-enforcer
 
-# Dar permisos de ejecución
+# Set execute permissions
 sudo chmod +x /usr/local/bin/blocksites
 sudo chmod +x /usr/local/bin/blocksites-enforcer
 ```
 
-## Uso
+## Usage
 
-### Bloquear sitios
+### Interactive mode
 
 ```bash
-# Por horas
+sudo blocksites
+```
+
+Launches a TUI menu where you can block sites, view status, or exit.
+
+### Block sites (CLI flags)
+
+```bash
+# By hours
 sudo blocksites --hours 2 --sites facebook.com,twitter.com,instagram.com
 
-# Por minutos (útil para pruebas)
+# By minutes (useful for testing)
 sudo blocksites --minutes 1 --sites facebook.com,twitter.com
 
-# Combinando horas y minutos
+# Combining hours and minutes
 sudo blocksites --hours 1 --minutes 30 --sites facebook.com,twitter.com
 ```
 
-Esto bloqueará los sitios por el tiempo especificado. **No hay forma de desbloquearlos antes**.
+This will block the specified sites for the given duration. **There is no way to unblock them early.**
 
-### Ver estado
+### View status (live countdown)
 
 ```bash
 blocksites --status
 ```
 
-Muestra qué sitios están bloqueados y cuánto tiempo queda.
+Shows which sites are blocked with a live countdown that updates every second, including a progress bar. Press `Ctrl+C` to exit the status view (the block remains active).
 
-## Cómo funciona
+## How it works
 
-1. **Bloqueo doble**: Modifica `/etc/hosts` Y configura reglas de firewall (`pf`)
-2. **Nivel de DNS**: Redirige los sitios a `127.0.0.1`
-3. **Nivel de red**: Bloquea las IPs de los sitios en el firewall (evita DoH/DNS over HTTPS)
-4. **Daemon vigilante**: Verifica cada minuto que los bloqueos sigan activos
-5. **Auto-restauración**: Si intentas modificar `/etc/hosts` o el firewall, se restaura automáticamente
-6. **Auto-limpieza**: Cuando expire el tiempo, se limpia todo automáticamente
+1. **Dual-layer blocking**: Modifies `/etc/hosts` AND configures firewall rules (`pf`)
+2. **DNS-level**: Redirects sites to `127.0.0.1`
+3. **Network-level**: Blocks site IPs at the firewall (prevents DoH/DNS over HTTPS bypass)
+4. **Enforcer daemon**: Checks every minute that blocks are still active
+5. **Auto-restore**: If you tamper with `/etc/hosts` or the firewall, it restores them automatically
+6. **Full cleanup**: When the timer expires, everything is cleaned up — hosts, firewall rules, anchor references, cached IPs, and the daemon itself
 
-## ⚠️ Advertencia
+## Warning
 
-Esta herramienta es **a propósito difícil de desactivar**. La única forma de detenerla antes de tiempo es:
-- Reiniciar en Recovery Mode y modificar archivos del sistema
-- O simplemente esperar a que expire el tiempo
+This tool is **intentionally difficult to bypass**. The only way to stop it early is:
+- Reboot into Recovery Mode and modify system files
+- Or just wait for the timer to expire
 
-Úsala con responsabilidad.
+Use responsibly.

@@ -63,10 +63,8 @@ func applyBlocks(_ sites: [String]) {
     try? hostsContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
 
     // Flush DNS cache
-    let flushDNS = Process()
-    flushDNS.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
-    flushDNS.arguments = ["-flushcache"]
-    try? flushDNS.run()
+    runCommand("/usr/bin/dscacheutil", args: ["-flushcache"])
+    runCommand("/usr/bin/killall", args: ["-HUP", "mDNSResponder"])
 
     // Re-apply firewall rules
     FirewallManager.shared.reapplyFirewallRules()
@@ -83,22 +81,24 @@ func removeBlocks() {
     try? cleanedContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
 
     // Flush DNS cache
-    let flushDNS = Process()
-    flushDNS.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
-    flushDNS.arguments = ["-flushcache"]
-    try? flushDNS.run()
-
-    // Remove config
-    try? FileManager.default.removeItem(atPath: configPath)
+    runCommand("/usr/bin/dscacheutil", args: ["-flushcache"])
+    runCommand("/usr/bin/killall", args: ["-HUP", "mDNSResponder"])
 
     // Remove firewall rules
     FirewallManager.shared.removeFirewallRules()
 
+    // Remove config and residual files
+    try? FileManager.default.removeItem(atPath: configPath)
+    try? FileManager.default.removeItem(atPath: "/Library/Application Support/BlockSites/ip_cache.json")
+    try? FileManager.default.removeItem(atPath: "/Library/Application Support/BlockSites/hosts.backup")
+
+    let plistPath = "/Library/LaunchDaemons/com.blocksites.enforcer.plist"
+
     // Unload self
-    let unload = Process()
-    unload.executableURL = URL(fileURLWithPath: "/bin/launchctl")
-    unload.arguments = ["unload", "-w", "/Library/LaunchDaemons/com.blocksites.enforcer.plist"]
-    try? unload.run()
+    runCommand("/bin/launchctl", args: ["unload", "-w", plistPath])
+
+    // Remove plist
+    try? FileManager.default.removeItem(atPath: plistPath)
 }
 
 // Main enforcement logic

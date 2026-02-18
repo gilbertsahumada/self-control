@@ -35,7 +35,28 @@ class FirewallManager {
 
     func removeFirewallRules() {
         try? FileManager.default.removeItem(atPath: pfRulesPath)
+
+        // Remove anchor references from pf.conf
+        removePfAnchor()
+
         try? runCommand("/sbin/pfctl", args: ["-f", "/etc/pf.conf"])
+    }
+
+    private func removePfAnchor() {
+        let pfConfPath = "/etc/pf.conf"
+        guard let pfConf = try? String(contentsOfFile: pfConfPath, encoding: .utf8) else {
+            return
+        }
+
+        let lines = pfConf.components(separatedBy: .newlines)
+        let cleanedLines = lines.filter { line in
+            !line.contains("# BlockSites anchor") &&
+            !line.contains("anchor \"com.blocksites\"") &&
+            !line.contains("load anchor \"com.blocksites\"")
+        }
+
+        let cleanedConf = cleanedLines.joined(separator: "\n")
+        try? cleanedConf.write(toFile: pfConfPath, atomically: true, encoding: .utf8)
     }
 
     private func loadFirewallRules() throws {

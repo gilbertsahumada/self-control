@@ -25,7 +25,7 @@ class FirewallManager {
         // Create pf anchor rules
         var rules = "# BlockSites firewall rules\n"
 
-        for (domain, ips) in domainIPs {
+        for (_, ips) in domainIPs {
             for ip in ips {
                 rules += "block drop quick from any to \(ip)\n"
                 rules += "block drop quick from \(ip) to any\n"
@@ -53,8 +53,27 @@ class FirewallManager {
         // Remove the anchor file
         try? FileManager.default.removeItem(atPath: pfRulesPath)
 
+        // Remove anchor references from pf.conf
+        removePfAnchor()
+
         // Reload pf to clear rules
         try runCommand("/sbin/pfctl", args: ["-f", "/etc/pf.conf"])
+    }
+
+    private func removePfAnchor() {
+        guard let pfConf = try? String(contentsOfFile: pfConfPath, encoding: .utf8) else {
+            return
+        }
+
+        let lines = pfConf.components(separatedBy: .newlines)
+        let cleanedLines = lines.filter { line in
+            !line.contains("# BlockSites anchor") &&
+            !line.contains("anchor \"com.blocksites\"") &&
+            !line.contains("load anchor \"com.blocksites\"")
+        }
+
+        let cleanedConf = cleanedLines.joined(separator: "\n")
+        try? cleanedConf.write(toFile: pfConfPath, atomically: true, encoding: .utf8)
     }
 
     private func resolveIPs(for domain: String) throws -> [String] {

@@ -18,12 +18,12 @@ struct BlockSites: ParsableCommand {
     @Option(name: .shortAndLong, help: "Sites to block (comma-separated)")
     var sites: String?
 
-    @Flag(name: .shortAndLong, help: "Show current block status")
+    @Flag(name: .long, help: "Show current block status")
     var status: Bool = false
 
     mutating func run() throws {
         if status {
-            try showStatus()
+            try showLiveStatus()
             return
         }
 
@@ -38,51 +38,243 @@ struct BlockSites: ParsableCommand {
             durationInSeconds += m * 60
         }
 
+        // If no arguments provided, launch interactive mode (requires root)
+        guard durationInSeconds > 0 || sites != nil else {
+            try runInteractiveMode()
+            return
+        }
+
         guard durationInSeconds > 0, let sites = sites else {
-            print("Usage:")
-            print("  blocksites --hours 2 --sites facebook.com,twitter.com")
-            print("  blocksites --minutes 30 --sites facebook.com,twitter.com")
-            print("  blocksites --hours 1 --minutes 30 --sites facebook.com")
-            print("  blocksites --status")
+            TerminalUI.printError("Debes especificar duración y sitios")
+            print("")
+            print("  \(TerminalUI.dim)blocksites --hours 2 --sites facebook.com,twitter.com\(TerminalUI.reset)")
+            print("  \(TerminalUI.dim)blocksites --minutes 30 --sites instagram.com\(TerminalUI.reset)")
+            print("  \(TerminalUI.dim)blocksites --status\(TerminalUI.reset)")
             throw ExitCode.failure
         }
 
         let siteList = sites.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
 
+        // Show confirmation
+        guard showConfirmation(sites: siteList, seconds: durationInSeconds) else {
+            print("")
+            TerminalUI.printWarning("Cancelado.")
+            return
+        }
+
         try BlockManager.shared.blockSites(siteList, forSeconds: durationInSeconds)
 
         let endTime = Date().addingTimeInterval(durationInSeconds)
         let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
+        formatter.dateFormat = "dd/MM/yyyy HH:mm"
 
-        print("✓ Blocked \(siteList.count) site(s) until \(formatter.string(from: endTime))")
-        print("Sites blocked: \(siteList.joined(separator: ", "))")
-        print("\n⚠️  Cannot be undone until timer expires!")
+        print("")
+        TerminalUI.printSuccess("Bloqueados \(siteList.count) sitio(s) hasta \(formatter.string(from: endTime))")
+        print("  \(TerminalUI.dim)Sitios: \(siteList.joined(separator: ", "))\(TerminalUI.reset)")
+        print("")
+        TerminalUI.printWarning("NO se puede deshacer hasta que expire el timer.")
     }
 
-    func showStatus() throws {
-        if let config = try BlockManager.shared.loadConfiguration() {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .short
-            formatter.timeStyle = .short
+    // MARK: - Interactive Mode
 
-            let now = Date()
-            if config.endTime > now {
-                let remaining = config.endTime.timeIntervalSince(now)
-                let hours = Int(remaining / 3600)
-                let minutes = Int((remaining.truncatingRemainder(dividingBy: 3600)) / 60)
+    func runInteractiveMode() throws {
+        guard getuid() == 0 else {
+            TerminalUI.printError("El modo interactivo requiere root")
+            print("  \(TerminalUI.dim)Ejecuta: sudo blocksites\(TerminalUI.reset)")
+            throw ExitCode.failure
+        }
 
-                print("🔒 ACTIVE BLOCK")
-                print("Sites blocked: \(config.sites.joined(separator: ", "))")
-                print("Started: \(formatter.string(from: config.startTime))")
-                print("Ends: \(formatter.string(from: config.endTime))")
-                print("Time remaining: \(hours)h \(minutes)m")
-            } else {
-                print("No active blocks")
+        while true {
+            TerminalUI.clearScreen()
+            let width = 37
+            TerminalUI.printBoxWithDivider(
+                header: [
+                    TerminalUI.centerText("\(TerminalUI.boldCyan)BLOCKSITES v1.0\(TerminalUI.reset)", width: width - 2)
+                ],
+                body: [
+                    "  \(TerminalUI.boldWhite)[1]\(TerminalUI.reset) Bloquear sitios",
+                    "  \(TerminalUI.boldWhite)[2]\(TerminalUI.reset) Ver estado",
+                    "  \(TerminalUI.boldWhite)[3]\(TerminalUI.reset) Salir",
+                    ""
+                ],
+                width: width
+            )
+
+            let choice = TerminalUI.readInput(prompt: "  Elige una opción: ")
+
+            switch choice.trimmingCharacters(in: .whitespaces) {
+            case "1":
+                try interactiveBlock()
+            case "2":
+                try showLiveStatus()
+            case "3":
+                return
+            default:
+                TerminalUI.printError("Opción no válida")
+                Thread.sleep(forTimeInterval: 1)
             }
-        } else {
-            print("No active blocks")
+        }
+    }
+
+    func interactiveBlock() throws {
+        TerminalUI.clearScreen()
+        print("\(TerminalUI.boldCyan)  BLOQUEAR SITIOS\(TerminalUI.reset)")
+        print("")
+
+        let sitesInput = TerminalUI.readInput(prompt: "  Sitios (separados por coma): ")
+        guard !sitesInput.trimmingCharacters(in: .whitespaces).isEmpty else {
+            TerminalUI.printError("No ingresaste sitios")
+            Thread.sleep(forTimeInterval: 1.5)
+            return
+        }
+
+        let siteList = sitesInput.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        guard !siteList.isEmpty else {
+            TerminalUI.printError("No ingresaste sitios válidos")
+            Thread.sleep(forTimeInterval: 1.5)
+            return
+        }
+
+        let hoursInput = TerminalUI.readInput(prompt: "  Horas (0 si solo minutos): ")
+        let minsInput = TerminalUI.readInput(prompt: "  Minutos (0 si solo horas): ")
+
+        let h = Double(hoursInput.trimmingCharacters(in: .whitespaces)) ?? 0
+        let m = Double(minsInput.trimmingCharacters(in: .whitespaces)) ?? 0
+        let totalSeconds = h * 3600 + m * 60
+
+        guard totalSeconds > 0 else {
+            TerminalUI.printError("La duración debe ser mayor a 0")
+            Thread.sleep(forTimeInterval: 1.5)
+            return
+        }
+
+        print("")
+        guard showConfirmation(sites: siteList, seconds: totalSeconds) else {
+            print("")
+            TerminalUI.printWarning("Cancelado.")
+            Thread.sleep(forTimeInterval: 1.5)
+            return
+        }
+
+        try BlockManager.shared.blockSites(siteList, forSeconds: totalSeconds)
+
+        let endTime = Date().addingTimeInterval(totalSeconds)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd/MM/yyyy HH:mm"
+
+        print("")
+        TerminalUI.printSuccess("Bloqueados \(siteList.count) sitio(s) hasta \(formatter.string(from: endTime))")
+        print("")
+        print("  \(TerminalUI.dim)Presiona Enter para continuar...\(TerminalUI.reset)")
+        _ = readLine()
+    }
+
+    // MARK: - Confirmation
+
+    func showConfirmation(sites: [String], seconds: TimeInterval) -> Bool {
+        let endTime = Date().addingTimeInterval(seconds)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd/MM/yyyy HH:mm"
+
+        print("")
+        TerminalUI.printWarning("Vas a bloquear:")
+        for site in sites {
+            let subCount = TerminalUI.subdomainCount(for: site)
+            print("    \(TerminalUI.boldWhite)•\(TerminalUI.reset) \(site) \(TerminalUI.dim)(+ \(subCount) subdominios)\(TerminalUI.reset)")
+        }
+        print("")
+        print("    \(TerminalUI.boldYellow)Duración:\(TerminalUI.reset) \(TerminalUI.formatDurationShort(seconds))")
+        print("    \(TerminalUI.boldYellow)Hasta:\(TerminalUI.reset)    \(formatter.string(from: endTime))")
+        print("")
+        TerminalUI.printWarning("NO se puede deshacer.")
+        print("")
+        return TerminalUI.confirm(prompt: "  ¿Continuar?")
+    }
+
+    // MARK: - Live Status
+
+    func showLiveStatus() throws {
+        guard let config = try BlockManager.shared.loadConfiguration() else {
+            print("")
+            TerminalUI.printBox([
+                "  \(TerminalUI.boldGreen)🔓  SIN BLOQUEOS ACTIVOS\(TerminalUI.reset)",
+                "",
+                "  \(TerminalUI.dim)No hay sitios bloqueados\(TerminalUI.reset)",
+                ""
+            ])
+            return
+        }
+
+        let now = Date()
+        guard config.endTime > now else {
+            print("")
+            TerminalUI.printBox([
+                "  \(TerminalUI.boldGreen)🔓  SIN BLOQUEOS ACTIVOS\(TerminalUI.reset)",
+                "",
+                "  \(TerminalUI.dim)El bloqueo anterior ya expiró\(TerminalUI.reset)",
+                ""
+            ])
+            return
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd/MM HH:mm"
+
+        let sitesStr = config.sites.joined(separator: ", ")
+        let startStr = formatter.string(from: config.startTime)
+        let endStr = formatter.string(from: config.endTime)
+
+        // Setup signal handler for Ctrl+C
+        TerminalUI.hideCursor()
+
+        signal(SIGINT) { _ in
+            TerminalUI.showCursor()
+            print("")
+            Darwin.exit(0)
+        }
+
+        // Live loop
+        while true {
+            let now = Date()
+            let remaining = config.endTime.timeIntervalSince(now)
+
+            if remaining <= 0 {
+                TerminalUI.clearScreen()
+                TerminalUI.showCursor()
+                print("")
+                TerminalUI.printBox([
+                    "  \(TerminalUI.boldGreen)🔓  BLOQUEO EXPIRADO\(TerminalUI.reset)",
+                    "",
+                    "  \(TerminalUI.dim)Los sitios ya están desbloqueados\(TerminalUI.reset)",
+                    ""
+                ])
+                return
+            }
+
+            let totalDuration = config.endTime.timeIntervalSince(config.startTime)
+            let elapsed = now.timeIntervalSince(config.startTime)
+            let progress = elapsed / totalDuration
+
+            TerminalUI.clearScreen()
+            print("")
+            TerminalUI.printBoxWithDivider(
+                header: [
+                    "  \(TerminalUI.boldRed)🔒  BLOQUEO ACTIVO\(TerminalUI.reset)"
+                ],
+                body: [
+                    "  \(TerminalUI.dim)Sitios:\(TerminalUI.reset) \(sitesStr)",
+                    "  \(TerminalUI.dim)Inicio:\(TerminalUI.reset) \(startStr)",
+                    "  \(TerminalUI.dim)Fin:\(TerminalUI.reset)    \(endStr)",
+                    "",
+                    "  \(TerminalUI.boldYellow)Restante: \(TerminalUI.formatDuration(remaining))\(TerminalUI.reset)",
+                    "  \(TerminalUI.progressBar(progress: progress))",
+                    ""
+                ],
+                width: 39
+            )
+            print("  \(TerminalUI.dim)Presiona Ctrl+C para salir\(TerminalUI.reset)")
+
+            Thread.sleep(forTimeInterval: 1)
         }
     }
 }
@@ -197,8 +389,14 @@ class BlockManager {
         // Remove firewall rules
         try? FirewallManager.shared.removeFirewallRules()
 
-        // Remove config
+        // Remove config and residual files
         try? FileManager.default.removeItem(atPath: configPath)
+        try? FileManager.default.removeItem(atPath: "/Library/Application Support/BlockSites/ip_cache.json")
+        try? FileManager.default.removeItem(atPath: backupPath)
+
+        // Unload daemon
+        try? runCommand("/bin/launchctl", args: ["unload", "-w", daemonPlistPath])
+        try? FileManager.default.removeItem(atPath: daemonPlistPath)
     }
 
     func loadConfiguration() throws -> BlockConfiguration? {
@@ -222,11 +420,8 @@ class BlockManager {
             // Still blocking - re-apply blocks in case user tried to modify
             try applyBlocks(config.sites)
         } else {
-            // Time expired - remove blocks
+            // Time expired - remove blocks (also unloads daemon and cleans files)
             try removeBlocks()
-
-            // Unload daemon
-            try? runCommand("/bin/launchctl", args: ["unload", "-w", daemonPlistPath])
         }
     }
 
