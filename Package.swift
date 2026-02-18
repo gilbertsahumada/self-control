@@ -29,6 +29,11 @@ let package = Package(
             name: "BlockSitesCoreTests",
             dependencies: ["BlockSitesCore"],
             path: "Tests/BlockSitesCoreTests"
+        ),
+        .testTarget(
+            name: "BlockSitesE2ETests",
+            dependencies: ["BlockSitesCore"],
+            path: "Tests/BlockSitesE2ETests"
         )
     ]
 )

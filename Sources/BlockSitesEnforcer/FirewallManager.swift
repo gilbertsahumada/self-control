@@ -56,9 +56,10 @@ class FirewallManager {
     func removeFirewallRules() {
         try? FileManager.default.removeItem(atPath: pfRulesPath)
 
-        // Remove anchor references from pf.conf
         removePfAnchor()
 
+        try? runCommand("/sbin/pfctl", args: ["-d"])
+        
         try? runCommand("/sbin/pfctl", args: ["-f", "/etc/pf.conf"])
     }
 

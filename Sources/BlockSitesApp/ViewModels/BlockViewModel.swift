@@ -33,13 +33,20 @@ class BlockViewModel: ObservableObject {
     // MARK: - Computed Properties
 
     var allSitesToBlock: [String] {
-        var sites = selectedSites.sorted()
+        let (valid, _) = DomainValidator.validateAndClean(customSitesText
+            .split(separator: ",")
+            .map { String($0) })
+        var sites = Array(selectedSites)
+        sites.append(contentsOf: valid)
+        return Array(Set(sites)).sorted()
+    }
+
+    var invalidDomains: [String] {
         let custom = customSitesText
             .split(separator: ",")
-            .map { String($0).trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        sites.append(contentsOf: custom)
-        return Array(Set(sites)).sorted()
+            .map { String($0) }
+        let (_, invalid) = DomainValidator.validateAndClean(custom)
+        return invalid
     }
 
     var totalDurationSeconds: TimeInterval {
@@ -63,6 +70,15 @@ class BlockViewModel: ObservableObject {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: config.endTime)
+    }
+
+    private func escapeForSed(_ string: String) -> String {
+        return string
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "[", with: "\\[")
+            .replacingOccurrences(of: "]", with: "\\]")
+            .replacingOccurrences(of: "*", with: "\\*")
+            .replacingOccurrences(of: ".", with: "\\.")
     }
 
     // MARK: - Check Existing Block
@@ -92,27 +108,27 @@ class BlockViewModel: ObservableObject {
         isProcessing = true
         errorMessage = nil
 
-        DispatchQueue.global(qos: .userInitiated).async { [self] in
+        Task {
             do {
-                let script = try buildBlockingScript(sites: sites, duration: totalDurationSeconds)
+                let script = try await buildBlockingScriptAsync(sites: sites, duration: totalDurationSeconds)
                 try PrivilegedExecutor.run(script)
 
-                DispatchQueue.main.async {
+                await MainActor.run {
                     self.isProcessing = false
                     self.checkExistingBlock()
                 }
             } catch let error as PrivilegedExecutor.ExecutionError {
-                DispatchQueue.main.async {
+                await MainActor.run {
                     self.isProcessing = false
                     switch error {
                     case .userCancelled:
-                        break // User cancelled — no error to show
+                        break
                     default:
                         self.errorMessage = error.localizedDescription
                     }
                 }
             } catch {
-                DispatchQueue.main.async {
+                await MainActor.run {
                     self.isProcessing = false
                     self.errorMessage = error.localizedDescription
                 }
@@ -124,7 +140,17 @@ class BlockViewModel: ObservableObject {
 
     private func startCountdownTimer() {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+
+        let interval: TimeInterval
+        if remainingSeconds <= 60 {
+            interval = 1
+        } else if remainingSeconds <= 3600 {
+            interval = 10
+        } else {
+            interval = 60
+        }
+
+        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             guard let self = self, let config = self.config else { return }
             let remaining = config.endTime.timeIntervalSince(Date())
             if remaining <= 0 {
@@ -137,6 +163,11 @@ class BlockViewModel: ObservableObject {
                 self.customSitesText = ""
             } else {
                 self.remainingSeconds = remaining
+                if remaining <= 60 && interval != 1 {
+                    self.startCountdownTimer()
+                } else if remaining <= 3600 && interval > 10 {
+                    self.startCountdownTimer()
+                }
             }
         }
     }
@@ -147,17 +178,14 @@ class BlockViewModel: ObservableObject {
         let startTime = Date()
         let endTime = startTime.addingTimeInterval(duration)
 
-        // 1. Build config JSON
         let blockConfig = BlockConfiguration(sites: sites, startTime: startTime, endTime: endTime)
         let configData = try JSONEncoder().encode(blockConfig)
         guard let configJSON = String(data: configData, encoding: .utf8) else {
             throw NSError(domain: "BlockSites", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode config"])
         }
 
-        // 2. Build hosts entries
         let hostsEntries = HostsGenerator.generateHostsEntries(for: sites, marker: marker)
 
-        // 3. Build firewall data (IP resolution happens here, no root needed)
         let firewallData = FirewallManager.generateFirewallData(for: sites)
         let pfRules = firewallData.rules
         let ipCacheJSON: String
@@ -167,7 +195,53 @@ class BlockViewModel: ObservableObject {
             ipCacheJSON = "{}"
         }
 
-        // 4. Build daemon plist
+        return try buildScriptContent(
+            configJSON: configJSON,
+            hostsEntries: hostsEntries,
+            pfRules: pfRules,
+            ipCacheJSON: ipCacheJSON
+        )
+    }
+
+    private func buildBlockingScriptAsync(sites: [String], duration: TimeInterval) async throws -> String {
+        let startTime = Date()
+        let endTime = startTime.addingTimeInterval(duration)
+
+        let blockConfig = BlockConfiguration(sites: sites, startTime: startTime, endTime: endTime)
+        let configData = try JSONEncoder().encode(blockConfig)
+        guard let configJSON = String(data: configData, encoding: .utf8) else {
+            throw NSError(domain: "BlockSites", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode config"])
+        }
+
+        let hostsEntries = HostsGenerator.generateHostsEntries(for: sites, marker: marker)
+
+        let firewallData = await FirewallManager.generateFirewallDataAsync(for: sites)
+        let pfRules = firewallData.rules
+        let ipCacheJSON: String
+        if let cacheData = firewallData.cacheData, let str = String(data: cacheData, encoding: .utf8) {
+            ipCacheJSON = str
+        } else {
+            ipCacheJSON = "{}"
+        }
+
+        return try buildScriptContent(
+            configJSON: configJSON,
+            hostsEntries: hostsEntries,
+            pfRules: pfRules,
+            ipCacheJSON: ipCacheJSON
+        )
+    }
+
+    private func buildScriptContent(configJSON: String, hostsEntries: String, pfRules: String, ipCacheJSON: String) throws -> String {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("blocksites-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let tempConfig = tempDir.appendingPathComponent("config.json")
+        let tempPfRules = tempDir.appendingPathComponent("pf_rules")
+        let tempIPCache = tempDir.appendingPathComponent("ip_cache.json")
+        let tempDaemonPlist = tempDir.appendingPathComponent("com.blocksites.enforcer.plist")
+        let tempHostsEntries = tempDir.appendingPathComponent("hosts_entries")
+
         let daemonPlist = """
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -184,22 +258,12 @@ class BlockViewModel: ObservableObject {
             <key>RunAtLoad</key>
             <true/>
             <key>StandardOutPath</key>
-            <string>/var/log/blocksites.log</string>
+            <string>/Library/Application Support/BlockSites/enforcer.log</string>
             <key>StandardErrorPath</key>
-            <string>/var/log/blocksites.log</string>
+            <string>/Library/Application Support/BlockSites/enforcer.log</string>
         </dict>
         </plist>
         """
-
-        // 5. Write temp files
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("blocksites-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-
-        let tempConfig = tempDir.appendingPathComponent("config.json")
-        let tempPfRules = tempDir.appendingPathComponent("pf_rules")
-        let tempIPCache = tempDir.appendingPathComponent("ip_cache.json")
-        let tempDaemonPlist = tempDir.appendingPathComponent("com.blocksites.enforcer.plist")
-        let tempHostsEntries = tempDir.appendingPathComponent("hosts_entries")
 
         try configJSON.write(to: tempConfig, atomically: true, encoding: .utf8)
         try pfRules.write(to: tempPfRules, atomically: true, encoding: .utf8)
@@ -207,8 +271,7 @@ class BlockViewModel: ObservableObject {
         try daemonPlist.write(to: tempDaemonPlist, atomically: true, encoding: .utf8)
         try hostsEntries.write(to: tempHostsEntries, atomically: true, encoding: .utf8)
 
-        // 6. Build the single privileged shell script
-        // Escape paths for shell
+        let escapedMarker = escapeForSed(marker)
         let supportDir = "/Library/Application Support/BlockSites"
         let pfAnchorPath = "/etc/pf.anchors/com.blocksites"
         let daemonPath = "/Library/LaunchDaemons/com.blocksites.enforcer.plist"
@@ -223,7 +286,7 @@ class BlockViewModel: ObservableObject {
         cp '\(tempPfRules.path)' '\(pfAnchorPath)' && \
         cp '\(tempDaemonPlist.path)' '\(daemonPath)' && \
         cp /etc/hosts '\(supportDir)/hosts.backup' && \
-        sed -i '' '/\(marker)/d' /etc/hosts && \
+        sed -i '' '/\(escapedMarker)/d' /etc/hosts && \
         cat '\(tempHostsEntries.path)' >> /etc/hosts && \
         dscacheutil -flushcache && killall -HUP mDNSResponder 2>/dev/null; \
         if ! grep -q '\(anchorLine)' /etc/pf.conf; then \

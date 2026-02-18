@@ -1,11 +1,15 @@
 import Foundation
 import BlockSitesCore
 
-// This is the daemon enforcer - runs every minute to ensure blocks stay active
-
 let configPath = "/Library/Application Support/BlockSites/config.json"
 let hostsPath = "/etc/hosts"
 let marker = "# BLOCKSITES"
+let stateFilePath = "/Library/Application Support/BlockSites/enforcer_state.json"
+
+struct EnforcerState: Codable {
+    var lastHostsHash: Int
+    var firstRunDone: Bool
+}
 
 func loadConfiguration() -> BlockConfiguration? {
     guard FileManager.default.fileExists(atPath: configPath),
@@ -16,25 +20,53 @@ func loadConfiguration() -> BlockConfiguration? {
     return config
 }
 
-func applyBlocks(_ sites: [String]) {
+func loadState() -> EnforcerState {
+    guard let data = try? Data(contentsOf: URL(fileURLWithPath: stateFilePath)),
+          let state = try? JSONDecoder().decode(EnforcerState.self, from: data) else {
+        return EnforcerState(lastHostsHash: 0, firstRunDone: false)
+    }
+    return state
+}
+
+func saveState(_ state: EnforcerState) {
+    if let data = try? JSONEncoder().encode(state) {
+        try? data.write(to: URL(fileURLWithPath: stateFilePath))
+    }
+}
+
+func computeHostsHash(_ content: String) -> Int {
+    var hasher = Hasher()
+    hasher.combine(content)
+    return hasher.finalize()
+}
+
+func applyBlocks(_ sites: [String], forceDNSFlush: Bool) {
     guard var hostsContent = try? String(contentsOfFile: hostsPath, encoding: .utf8) else {
         return
     }
 
-    // Remove old blocks
+    let currentHash = computeHostsHash(hostsContent)
+    let state = loadState()
+
     hostsContent = HostsGenerator.cleanHostsContent(hostsContent, marker: marker)
+    let newContent = hostsContent + HostsGenerator.generateHostsEntries(for: sites, marker: marker)
+    let newHash = computeHostsHash(newContent)
 
-    // Add new blocks
-    hostsContent += HostsGenerator.generateHostsEntries(for: sites, marker: marker)
+    if currentHash != newHash || forceDNSFlush {
+        try? newContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
 
-    try? hostsContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
+        if forceDNSFlush {
+            runCommand("/usr/bin/dscacheutil", args: ["-flushcache"])
+            runCommand("/usr/bin/killall", args: ["-HUP", "mDNSResponder"])
+        }
+    }
 
-    // Flush DNS cache
-    runCommand("/usr/bin/dscacheutil", args: ["-flushcache"])
-    runCommand("/usr/bin/killall", args: ["-HUP", "mDNSResponder"])
-
-    // Re-apply firewall rules
     FirewallManager.shared.reapplyFirewallRules()
+
+    var newState = state
+    newState.lastHostsHash = newHash
+    newState.firstRunDone = true
+    saveState(newState)
 }
 
 func removeBlocks() {
@@ -43,31 +75,30 @@ func removeBlocks() {
     }
 
     let cleanedContent = HostsGenerator.cleanHostsContent(hostsContent, marker: marker)
+    let currentHash = computeHostsHash(hostsContent)
+    let state = loadState()
 
-    try? cleanedContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
+    if currentHash != state.lastHostsHash {
+        try? cleanedContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
+        
+        runCommand("/usr/bin/dscacheutil", args: ["-flushcache"])
+        runCommand("/usr/bin/killall", args: ["-HUP", "mDNSResponder"])
+    }
 
-    // Flush DNS cache
-    runCommand("/usr/bin/dscacheutil", args: ["-flushcache"])
-    runCommand("/usr/bin/killall", args: ["-HUP", "mDNSResponder"])
-
-    // Remove firewall rules
     FirewallManager.shared.removeFirewallRules()
 
-    // Remove config and residual files
     try? FileManager.default.removeItem(atPath: configPath)
     try? FileManager.default.removeItem(atPath: "/Library/Application Support/BlockSites/ip_cache.json")
     try? FileManager.default.removeItem(atPath: "/Library/Application Support/BlockSites/hosts.backup")
+    try? FileManager.default.removeItem(atPath: stateFilePath)
 
     let plistPath = "/Library/LaunchDaemons/com.blocksites.enforcer.plist"
 
-    // Unload self
     runCommand("/bin/launchctl", args: ["unload", "-w", plistPath])
 
-    // Remove plist
     try? FileManager.default.removeItem(atPath: plistPath)
 }
 
-// Main enforcement logic
 guard let config = loadConfiguration() else {
     exit(0)
 }
@@ -75,9 +106,9 @@ guard let config = loadConfiguration() else {
 let now = Date()
 
 if now < config.endTime {
-    // Still blocking - re-apply blocks
-    applyBlocks(config.sites)
+    let state = loadState()
+    let forceDNSFlush = !state.firstRunDone
+    applyBlocks(config.sites, forceDNSFlush: forceDNSFlush)
 } else {
-    // Time expired - remove blocks
     removeBlocks()
 }

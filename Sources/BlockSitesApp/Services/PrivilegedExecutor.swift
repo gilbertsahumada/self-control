@@ -18,15 +18,20 @@ enum PrivilegedExecutor {
         }
     }
 
-    /// Runs a shell command with administrator privileges via the native macOS password dialog.
-    /// The user sees one password prompt for the entire script.
     static func run(_ shellScript: String) throws {
-        // Escape single quotes and backslashes for AppleScript embedding
-        let escaped = shellScript
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
+        let tempDir = FileManager.default.temporaryDirectory
+        
+        let scriptPath = tempDir.appendingPathComponent("blocksites_script_\(UUID().uuidString).sh")
+        try shellScript.write(to: scriptPath, atomically: true, encoding: .utf8)
+        
+        defer {
+            try? FileManager.default.removeItem(at: scriptPath)
+        }
 
-        let source = "do shell script \"\(escaped)\" with administrator privileges"
+        let escapedScriptPath = scriptPath.path
+            .replacingOccurrences(of: "'", with: "'\\''")
+
+        let source = "do shell script \"bash '\(escapedScriptPath)'\" with administrator privileges"
 
         guard let script = NSAppleScript(source: source) else {
             throw ExecutionError.scriptCreationFailed
@@ -37,7 +42,6 @@ enum PrivilegedExecutor {
 
         if let error = errorDict {
             let errorNumber = error[NSAppleScript.errorNumber] as? Int ?? 0
-            // -128 = user cancelled the dialog
             if errorNumber == -128 {
                 throw ExecutionError.userCancelled
             }

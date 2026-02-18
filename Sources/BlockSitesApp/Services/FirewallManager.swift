@@ -42,6 +42,22 @@ enum FirewallManager {
         return ips
     }
 
+    /// Resolves IPs for multiple domains concurrently using TaskGroup.
+    static func resolveIPsConcurrently(for domains: [String]) async -> [String] {
+        await withTaskGroup(of: [String].self) { group in
+            for domain in domains {
+                group.addTask {
+                    resolveIPs(for: domain)
+                }
+            }
+            var allIPs: [String] = []
+            for await ips in group {
+                allIPs.append(contentsOf: ips)
+            }
+            return allIPs
+        }
+    }
+
     /// Resolves all IPs for a list of sites and builds the pf anchor rules + IP cache in memory.
     /// Returns (rulesContent, ipCacheData).
     static func generateFirewallData(for sites: [String]) -> (rules: String, cacheData: Data?) {
@@ -63,7 +79,39 @@ enum FirewallManager {
             }
         }
 
-        // Build pf anchor rules
+        return buildFirewallResponse(domainIPs: domainIPs, domainCIDRs: domainCIDRs)
+    }
+
+    /// Async version that resolves IPs concurrently for better performance.
+    static func generateFirewallDataAsync(for sites: [String]) async -> (rules: String, cacheData: Data?) {
+        var domainIPs: [String: [String]] = [:]
+        var domainCIDRs: [String: [String]] = [:]
+
+        await withTaskGroup(of: (String, [String]).self) { group in
+            for site in sites {
+                let domainsToResolve = DomainExpander.expandDomainsForFirewall(site)
+                group.addTask {
+                    let allIPs = await self.resolveIPsConcurrently(for: domainsToResolve)
+                    return (site, Array(Set(allIPs)))
+                }
+            }
+
+            for await (site, ips) in group {
+                domainIPs[site] = ips
+            }
+        }
+
+        for site in sites {
+            let cidrs = DomainExpander.cidrRanges(for: site)
+            if !cidrs.isEmpty {
+                domainCIDRs[site] = cidrs
+            }
+        }
+
+        return buildFirewallResponse(domainIPs: domainIPs, domainCIDRs: domainCIDRs)
+    }
+
+    private static func buildFirewallResponse(domainIPs: [String: [String]], domainCIDRs: [String: [String]]) -> (rules: String, cacheData: Data?) {
         var rules = "# BlockSites firewall rules\n"
 
         for (_, ips) in domainIPs {
@@ -84,7 +132,6 @@ enum FirewallManager {
             rules += "block drop quick proto tcp from any to \(ip) port 443\n"
         }
 
-        // Build IP cache JSON
         let cache = IPCache(
             ips: domainIPs,
             cidrs: domainCIDRs.isEmpty ? nil : domainCIDRs,
