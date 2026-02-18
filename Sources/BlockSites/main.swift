@@ -360,6 +360,87 @@ class BlockManager {
                     blockEntries += "127.0.0.1 \(domain) \(marker)\n"
                 }
             }
+
+            // Special handling for Instagram
+            if site == "instagram.com" {
+                let igDomains = [
+                    "instagram.com", "www.instagram.com", "i.instagram.com",
+                    "graph.instagram.com", "edge-chat.instagram.com",
+                    "scontent.cdninstagram.com", "cdninstagram.com",
+                    "www.cdninstagram.com", "static.cdninstagram.com",
+                    "scontent-*.cdninstagram.com",
+                    "l.instagram.com", "b.i.instagram.com",
+                    "about.instagram.com", "help.instagram.com",
+                    "web.instagram.com", "d.instagram.com",
+                    "z-p3-graph.instagram.com", "z-p4-graph.instagram.com"
+                ]
+                for domain in igDomains {
+                    blockEntries += "127.0.0.1 \(domain) \(marker)\n"
+                }
+            }
+
+            // Special handling for Facebook
+            if site == "facebook.com" {
+                let fbDomains = [
+                    "facebook.com", "www.facebook.com", "m.facebook.com",
+                    "web.facebook.com", "mobile.facebook.com",
+                    "graph.facebook.com", "edge-chat.facebook.com",
+                    "static.facebook.com", "staticxx.facebook.com",
+                    "upload.facebook.com", "l.facebook.com",
+                    "fbcdn.net", "static.xx.fbcdn.net", "scontent.xx.fbcdn.net",
+                    "video.xx.fbcdn.net", "external.xx.fbcdn.net",
+                    "fbcdn.com", "connect.facebook.net",
+                    "star.facebook.com", "z-m-graph.facebook.com"
+                ]
+                for domain in fbDomains {
+                    blockEntries += "127.0.0.1 \(domain) \(marker)\n"
+                }
+            }
+
+            // Special handling for YouTube
+            if site == "youtube.com" {
+                let ytDomains = [
+                    "youtube.com", "www.youtube.com", "m.youtube.com",
+                    "youtu.be", "www.youtu.be",
+                    "youtube-nocookie.com", "www.youtube-nocookie.com",
+                    "googlevideo.com", "www.googlevideo.com",
+                    "ytimg.com", "i.ytimg.com", "s.ytimg.com",
+                    "music.youtube.com", "tv.youtube.com",
+                    "accounts.youtube.com", "studio.youtube.com"
+                ]
+                for domain in ytDomains {
+                    blockEntries += "127.0.0.1 \(domain) \(marker)\n"
+                }
+            }
+
+            // Special handling for TikTok
+            if site == "tiktok.com" {
+                let ttDomains = [
+                    "tiktok.com", "www.tiktok.com", "m.tiktok.com",
+                    "vm.tiktok.com", "t.tiktok.com",
+                    "sf-tb-sg.ibytedtos.com", "v16m-default.akamaized.net",
+                    "mon.musical.ly", "log.tiktokv.com",
+                    "ib.tiktokv.com", "api.tiktokv.com"
+                ]
+                for domain in ttDomains {
+                    blockEntries += "127.0.0.1 \(domain) \(marker)\n"
+                }
+            }
+
+            // Special handling for Reddit
+            if site == "reddit.com" {
+                let rdDomains = [
+                    "reddit.com", "www.reddit.com", "old.reddit.com",
+                    "new.reddit.com", "i.reddit.com", "m.reddit.com",
+                    "sh.reddit.com", "oauth.reddit.com",
+                    "redd.it", "i.redd.it", "v.redd.it", "preview.redd.it",
+                    "external-preview.redd.it", "www.redditmedia.com",
+                    "redditstatic.com", "www.redditstatic.com"
+                ]
+                for domain in rdDomains {
+                    blockEntries += "127.0.0.1 \(domain) \(marker)\n"
+                }
+            }
         }
         blockEntries += "\(marker) END\n"
 

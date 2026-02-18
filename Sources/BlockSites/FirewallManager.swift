@@ -13,13 +13,22 @@ class FirewallManager {
     }
 
     func blockSitesWithFirewall(_ sites: [String]) throws {
-        // Resolve domains to IPs
+        // Resolve domains to IPs (including key subdomains)
         var domainIPs: [String: [String]] = [:]
 
         for site in sites {
-            if let ips = try? resolveIPs(for: site) {
-                domainIPs[site] = ips
+            var allIPs: [String] = []
+
+            // Resolve main domain and www
+            let domainsToResolve = expandDomainsForFirewall(site)
+            for domain in domainsToResolve {
+                if let ips = try? resolveIPs(for: domain) {
+                    allIPs.append(contentsOf: ips)
+                }
             }
+
+            // Deduplicate
+            domainIPs[site] = Array(Set(allIPs))
         }
 
         // Create pf anchor rules
@@ -74,6 +83,29 @@ class FirewallManager {
 
         let cleanedConf = cleanedLines.joined(separator: "\n")
         try? cleanedConf.write(toFile: pfConfPath, atomically: true, encoding: .utf8)
+    }
+
+    private func expandDomainsForFirewall(_ site: String) -> [String] {
+        var domains = [site, "www.\(site)"]
+
+        switch site {
+        case "instagram.com":
+            domains += ["i.instagram.com", "graph.instagram.com", "scontent.cdninstagram.com", "cdninstagram.com", "edge-chat.instagram.com"]
+        case "facebook.com":
+            domains += ["m.facebook.com", "web.facebook.com", "graph.facebook.com", "fbcdn.net", "fbcdn.com", "connect.facebook.net", "static.facebook.com"]
+        case "twitter.com", "x.com":
+            domains += ["api.x.com", "api.twitter.com", "t.co", "twimg.com", "pbs.twimg.com"]
+        case "youtube.com":
+            domains += ["m.youtube.com", "youtu.be", "googlevideo.com", "ytimg.com"]
+        case "tiktok.com":
+            domains += ["m.tiktok.com", "vm.tiktok.com"]
+        case "reddit.com":
+            domains += ["old.reddit.com", "i.redd.it", "v.redd.it", "redd.it"]
+        default:
+            break
+        }
+
+        return domains
     }
 
     private func resolveIPs(for domain: String) throws -> [String] {

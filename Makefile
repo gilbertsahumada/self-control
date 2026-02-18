@@ -1,4 +1,4 @@
-.PHONY: build release run status install clean
+.PHONY: build release run status install clean test test-cleanup
 
 # Development
 build:
@@ -19,6 +19,13 @@ install: release
 	sudo cp .build/release/BlockSitesEnforcer /usr/local/bin/blocksites-enforcer
 	sudo chmod +x /usr/local/bin/blocksites
 	sudo chmod +x /usr/local/bin/blocksites-enforcer
+
+# Testing
+test: build
+	sudo ./test_blocking.sh
+
+test-cleanup:
+	sudo ./test_cleanup.sh
 
 # Cleanup
 clean:
