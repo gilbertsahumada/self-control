@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 @main
-struct BlockSitesApp: App {
+struct SelfControlApp: App {
     @StateObject private var viewModel = BlockViewModel()
 
     init() {

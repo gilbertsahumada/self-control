@@ -1,5 +1,5 @@
 import SwiftUI
-import BlockSitesCore
+import SelfControlCore
 
 struct ActiveBlockView: View {
     @EnvironmentObject var viewModel: BlockViewModel

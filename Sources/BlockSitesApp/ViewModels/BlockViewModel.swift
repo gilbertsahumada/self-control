@@ -1,6 +1,6 @@
 import Foundation
 import Combine
-import BlockSitesCore
+import SelfControlCore
 
 class BlockViewModel: ObservableObject {
     // MARK: - Setup State

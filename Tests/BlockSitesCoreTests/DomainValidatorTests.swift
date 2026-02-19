@@ -1,5 +1,5 @@
 import XCTest
-@testable import BlockSitesCore
+@testable import SelfControlCore
 
 final class DomainValidatorTests: XCTestCase {
 

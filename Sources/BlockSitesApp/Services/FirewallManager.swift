@@ -1,5 +1,5 @@
 import Foundation
-import BlockSitesCore
+import SelfControlCore
 
 enum FirewallManager {
     /// IPCache must match the enforcer's IPCache struct exactly for JSON compatibility.

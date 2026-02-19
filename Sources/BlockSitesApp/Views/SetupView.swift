@@ -1,5 +1,5 @@
 import SwiftUI
-import BlockSitesCore
+import SelfControlCore
 
 struct SetupView: View {
     @EnvironmentObject var viewModel: BlockViewModel
@@ -8,7 +8,7 @@ struct SetupView: View {
         ScrollView {
             VStack(spacing: 20) {
                 // Header
-                Text("BlockSites")
+                Text("SelfControl")
                     .font(.largeTitle)
                     .fontWeight(.bold)
 

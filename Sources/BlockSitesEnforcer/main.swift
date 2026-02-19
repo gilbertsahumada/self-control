@@ -1,5 +1,5 @@
 import Foundation
-import BlockSitesCore
+import SelfControlCore
 
 let configPath = "/Library/Application Support/BlockSites/config.json"
 let hostsPath = "/etc/hosts"

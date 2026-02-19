@@ -2,37 +2,37 @@
 import PackageDescription
 
 let package = Package(
-    name: "BlockSites",
+    name: "SelfControl",
     platforms: [
         .macOS(.v13)
     ],
     targets: [
         .target(
-            name: "BlockSitesCore",
+            name: "SelfControlCore",
             path: "Sources/BlockSitesCore"
         ),
         .executableTarget(
-            name: "BlockSitesApp",
+            name: "SelfControl",
             dependencies: [
-                "BlockSitesCore"
+                "SelfControlCore"
             ],
             path: "Sources/BlockSitesApp"
         ),
         .executableTarget(
-            name: "BlockSitesEnforcer",
+            name: "SelfControlEnforcer",
             dependencies: [
-                "BlockSitesCore"
+                "SelfControlCore"
             ],
             path: "Sources/BlockSitesEnforcer"
         ),
         .testTarget(
-            name: "BlockSitesCoreTests",
-            dependencies: ["BlockSitesCore"],
+            name: "SelfControlCoreTests",
+            dependencies: ["SelfControlCore"],
             path: "Tests/BlockSitesCoreTests"
         ),
         .testTarget(
-            name: "BlockSitesE2ETests",
-            dependencies: ["BlockSitesCore"],
+            name: "SelfControlE2ETests",
+            dependencies: ["SelfControlCore"],
             path: "Tests/BlockSitesE2ETests"
         )
     ]
