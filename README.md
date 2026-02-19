@@ -20,14 +20,14 @@ Built with Swift 5.9+ and SwiftUI. Requires macOS 13 (Ventura) or later.
 
 ### Option 1: DMG (Recommended)
 
-1. Download the latest `SelfControl-X.X.X.dmg` from [Releases](https://github.com/yourusername/self-control/releases)
+1. Download the latest `SelfControl-X.X.X.dmg` from [Releases](https://github.com/gilbertsahumada/self-control/releases)
 2. Mount the DMG
 3. Drag `SelfControl.app` to Applications
 
 ### Option 2: Build from Source
 
 ```bash
-git clone https://github.com/yourusername/self-control.git
+git clone https://github.com/gilbertsahumada/self-control.git
 cd self-control
 swift build -c release
 ```
@@ -94,7 +94,14 @@ swift test
 
 # Create DMG
 ./scripts/build_dmg.sh
+
+# Build landing page
+cd web && yarn build
 ```
+
+Landing page: `https://gilbertsahumada.github.io/self-control/`
+
+Release instructions: see `RELEASE.md`.
 
 ## Security
 

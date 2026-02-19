@@ -11,3 +11,4 @@ DerivedData/
 /*.md
 !README.md
 !CONTRIBUTING.md
+!RELEASE.md

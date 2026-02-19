@@ -7,7 +7,7 @@ on:
     branches: [main, master]
 
 jobs:
-  build-and-test:
+  swift-build-and-test:
     runs-on: macos-14
 
     steps:
@@ -28,3 +28,25 @@ jobs:
 
       - name: Build release
         run: swift build -c release
+
+  web-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: web/yarn.lock
+
+      - name: Install dependencies
+        run: yarn --frozen-lockfile
+        working-directory: web
+
+      - name: Build web app
+        run: yarn build
+        working-directory: web
