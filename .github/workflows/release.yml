@@ -6,7 +6,32 @@ on:
       - 'v*'
 
 jobs:
+  detect-release-scope:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.scope.outputs.should_release }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed files for tag commit
+        id: scope
+        run: |
+          FILES=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          echo "Changed files:"
+          echo "$FILES"
+
+          if echo "$FILES" | grep -qv '^web/'; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-and-release:
+    needs: detect-release-scope
+    if: needs.detect-release-scope.outputs.should_release == 'true'
     runs-on: macos-14
     permissions:
       contents: write
@@ -35,3 +60,12 @@ jobs:
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  skip-release:
+    needs: detect-release-scope
+    if: needs.detect-release-scope.outputs.should_release != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip release when only web changes
+        run: |
+          echo "Skipping release: tagged commit only includes changes under web/."
