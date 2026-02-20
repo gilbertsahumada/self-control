@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+APP_VERSION="${VERSION:-1.0.0}"
+
 echo "🚀 Building SelfControl..."
 
 # Build release
@@ -23,7 +25,7 @@ cp ".build/release/SelfControl" "$MACOS_PATH/"
 cp ".build/release/SelfControlEnforcer" "$MACOS_PATH/"
 
 # Create Info.plist
-cat > "$CONTENTS_PATH/Info.plist" << 'EOF'
+cat > "$CONTENTS_PATH/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -43,9 +45,9 @@ cat > "$CONTENTS_PATH/Info.plist" << 'EOF'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>${APP_VERSION}</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>${APP_VERSION}</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>NSMainStoryboardFile</key>
@@ -81,10 +83,10 @@ echo "✅ App bundle created at dist/$APP_NAME"
 
 # Create DMG
 echo "💿 Creating DMG..."
-hdiutil create -volname "SelfControl" -srcfolder "dist" -ov -format UDZO "dist/SelfControl-1.0.0.dmg"
+hdiutil create -volname "SelfControl" -srcfolder "dist" -ov -format UDZO "dist/SelfControl-${APP_VERSION}.dmg"
 
-echo "✅ DMG created at dist/SelfControl-1.0.0.dmg"
+echo "✅ DMG created at dist/SelfControl-${APP_VERSION}.dmg"
 echo ""
 echo "📦 Distribution ready:"
 echo "   - dist/SelfControl.app"
-echo "   - dist/SelfControl-1.0.0.dmg"
+echo "   - dist/SelfControl-${APP_VERSION}.dmg"

@@ -15,15 +15,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Resolve version from tag
+        id: vars
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
       - name: Build DMG
         run: |
           chmod +x scripts/build_dmg.sh
-          ./scripts/build_dmg.sh
+          VERSION=${{ steps.vars.outputs.version }} ./scripts/build_dmg.sh
+
+      - name: Verify DMG exists
+        run: ls -la dist/
 
       - name: Upload DMG
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/SelfControl-*.dmg
+          files: dist/SelfControl-${{ steps.vars.outputs.version }}.dmg
+          fail_on_unmatched_files: true
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
