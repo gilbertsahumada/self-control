@@ -53,11 +53,24 @@ jobs:
         run: ls -la dist/
 
       - name: Upload DMG
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/SelfControl-${{ steps.vars.outputs.version }}.dmg
           fail_on_unmatched_files: true
           draft: true
+          body: |
+            ## Installation
+
+            1. Download `SelfControl-${{ steps.vars.outputs.version }}.dmg`
+            2. Open the DMG and drag **SelfControl** to your Applications folder
+            3. Before opening for the first time, run this command in Terminal:
+               ```
+               xattr -cr /Applications/SelfControl.app
+               ```
+            4. Open SelfControl from Applications
+
+            > This step is required because the app is not notarized with Apple.
+            > You only need to do it once after downloading.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

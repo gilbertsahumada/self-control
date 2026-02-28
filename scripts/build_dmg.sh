@@ -3,10 +3,10 @@ set -e
 
 APP_VERSION="${VERSION:-1.0.0}"
 
-echo "🚀 Building SelfControl..."
+echo "Building SelfControl v${APP_VERSION}..."
 
 # Build release
-echo "📦 Building release binaries..."
+echo "Building release binaries..."
 swift build -c release
 
 # Create .app bundle structure
@@ -15,7 +15,7 @@ CONTENTS_PATH="dist/$APP_NAME/Contents"
 MACOS_PATH="$CONTENTS_PATH/MacOS"
 RESOURCES_PATH="$CONTENTS_PATH/Resources"
 
-echo "📁 Creating app bundle..."
+echo "Creating app bundle..."
 rm -rf dist
 mkdir -p "$MACOS_PATH"
 mkdir -p "$RESOURCES_PATH"
@@ -50,43 +50,38 @@ cat > "$CONTENTS_PATH/Info.plist" << EOF
     <string>${APP_VERSION}</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
-    <key>NSMainStoryboardFile</key>
-    <string></string>
-    <key>NSPrincipalClass</key>
-    <string>NSApplication</string>
     <key>LSUIElement</key>
     <false/>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2024. All rights reserved.</string>
-    <key>CFBundleIconFile</key>
-    <string></string>
+    <string>Copyright 2024. All rights reserved.</string>
 </dict>
 </plist>
 EOF
 
-# Create minimal entitlements (app sandbox disabled for admin privileges)
-cat > "$CONTENTS_PATH/SelfControl.entitlements" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>com.apple.security.app-sandbox</key>
-    <false/>
-</dict>
-</plist>
-EOF
+# Ad-hoc code sign the executables and app bundle
+echo "Code signing (ad-hoc)..."
+codesign --force --sign - "$MACOS_PATH/SelfControlEnforcer"
+codesign --force --sign - "$MACOS_PATH/SelfControl"
+codesign --force --sign - "dist/$APP_NAME"
 
-# Copy enforcer entitlements
-cp "$CONTENTS_PATH/SelfControl.entitlements" "$CONTENTS_PATH/SelfControlEnforcer.entitlements"
+echo "Verifying code signature..."
+codesign --verify --verbose "dist/$APP_NAME"
 
-echo "✅ App bundle created at dist/$APP_NAME"
+echo "App bundle created at dist/$APP_NAME"
 
-# Create DMG
-echo "💿 Creating DMG..."
-hdiutil create -volname "SelfControl" -srcfolder "dist" -ov -format UDZO "dist/SelfControl-${APP_VERSION}.dmg"
+# Create DMG — move .app to a temp staging dir so the DMG only contains the .app
+echo "Creating DMG..."
+STAGING_DIR=$(mktemp -d)
+cp -R "dist/$APP_NAME" "$STAGING_DIR/"
+hdiutil create -volname "SelfControl" -srcfolder "$STAGING_DIR" -ov -format UDZO "dist/SelfControl-${APP_VERSION}.dmg"
+rm -rf "$STAGING_DIR"
 
-echo "✅ DMG created at dist/SelfControl-${APP_VERSION}.dmg"
+echo "DMG created at dist/SelfControl-${APP_VERSION}.dmg"
 echo ""
-echo "📦 Distribution ready:"
+echo "Distribution ready:"
 echo "   - dist/SelfControl.app"
 echo "   - dist/SelfControl-${APP_VERSION}.dmg"
+echo ""
+echo "NOTE: This app is ad-hoc signed. Users downloading from the internet"
+echo "will need to remove the quarantine attribute before opening:"
+echo "   xattr -cr /path/to/SelfControl.app"

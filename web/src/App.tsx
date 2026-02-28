@@ -123,8 +123,26 @@ function App() {
         </section>
 
         <section className="mt-8 rounded-2xl border border-border/70 bg-card/50 p-7">
-          <h3 className="text-lg font-semibold">Install in 2 steps</h3>
-          <p className="mt-2 text-sm text-muted-foreground">Download the DMG, open it, and drag SelfControl to Applications.</p>
+          <h3 className="text-lg font-semibold">Install in 3 steps</h3>
+          <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
+            <li className="flex gap-2">
+              <span className="font-medium text-foreground">1.</span>
+              Download the DMG, open it, and drag SelfControl to Applications.
+            </li>
+            <li className="flex gap-2">
+              <span className="font-medium text-foreground">2.</span>
+              <span>
+                Open Terminal and run:
+                <code className="ml-1 rounded bg-background/80 px-2 py-0.5 text-xs text-indigo-300">
+                  xattr -cr /Applications/SelfControl.app
+                </code>
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="font-medium text-foreground">3.</span>
+              Open SelfControl from Applications. You only need step 2 once.
+            </li>
+          </ol>
           <Separator className="my-5" />
           <div className="flex flex-wrap gap-5 text-sm">
             <a className="text-indigo-300 hover:text-indigo-200" href={`https://github.com/${OWNER}/${REPO}`}>
