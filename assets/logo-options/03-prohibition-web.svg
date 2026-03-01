@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="circleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="globeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C7D2FE"/>
+      <stop offset="100%" stop-color="#A5B4FC"/>
+    </linearGradient>
+  </defs>
+  <!-- Globe/web icon (simplified) -->
+  <circle cx="256" cy="256" r="140" fill="none" stroke="url(#globeGrad)" stroke-width="10" opacity="0.5"/>
+  <!-- Globe vertical meridian -->
+  <ellipse cx="256" cy="256" rx="70" ry="140" fill="none" stroke="url(#globeGrad)" stroke-width="8" opacity="0.5"/>
+  <!-- Globe horizontal lines -->
+  <line x1="116" y1="210" x2="396" y2="210" stroke="#A5B4FC" stroke-width="6" opacity="0.4"/>
+  <line x1="116" y1="302" x2="396" y2="302" stroke="#A5B4FC" stroke-width="6" opacity="0.4"/>
+  <!-- Globe equator -->
+  <line x1="116" y1="256" x2="396" y2="256" stroke="#A5B4FC" stroke-width="7" opacity="0.45"/>
+  <!-- Prohibition circle (outer) -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="url(#circleGrad)" stroke-width="40"/>
+  <!-- Prohibition diagonal slash -->
+  <line x1="114" y1="398" x2="398" y2="114"
+        stroke="url(#circleGrad)" stroke-width="40" stroke-linecap="round"/>
+</svg>

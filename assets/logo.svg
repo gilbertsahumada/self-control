@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="lockBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="shackleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#A5B4FC"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+  </defs>
+  <!-- Lock shackle (U-shape) -->
+  <path d="M168 220 L168 148 C168 80 208 40 256 40 C304 40 344 80 344 148 L344 220"
+        fill="none" stroke="url(#shackleGrad)" stroke-width="36" stroke-linecap="round"/>
+  <!-- Lock body (rounded rectangle) -->
+  <rect x="120" y="220" width="272" height="252" rx="40" ry="40"
+        fill="url(#lockBodyGrad)"/>
+  <!-- Timer arc on lock body -->
+  <circle cx="256" cy="340" r="72" fill="none" stroke="#1E1B4B" stroke-width="16" opacity="0.4"/>
+  <!-- Timer progress arc (270 degrees = 3/4 complete) -->
+  <path d="M256 268 A72 72 0 1 1 184 340"
+        fill="none" stroke="#E0E7FF" stroke-width="16" stroke-linecap="round"/>
+  <!-- Timer tick marks -->
+  <line x1="256" y1="276" x2="256" y2="288" stroke="#C7D2FE" stroke-width="4" stroke-linecap="round"/>
+  <line x1="320" y1="340" x2="308" y2="340" stroke="#C7D2FE" stroke-width="4" stroke-linecap="round"/>
+  <line x1="256" y1="404" x2="256" y2="392" stroke="#C7D2FE" stroke-width="4" stroke-linecap="round"/>
+  <line x1="192" y1="340" x2="204" y2="340" stroke="#C7D2FE" stroke-width="4" stroke-linecap="round"/>
+  <!-- Timer hand -->
+  <line x1="256" y1="340" x2="256" y2="288" stroke="#E0E7FF" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="256" cy="340" r="6" fill="#E0E7FF"/>
+</svg>

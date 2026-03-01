@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="shieldGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="sandGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E0E7FF"/>
+      <stop offset="100%" stop-color="#C7D2FE"/>
+    </linearGradient>
+    <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E0E7FF"/>
+      <stop offset="100%" stop-color="#A5B4FC"/>
+    </linearGradient>
+  </defs>
+  <!-- Shield body -->
+  <path d="M256 28 L456 108 C456 108 468 300 256 484 C44 300 56 108 56 108 Z"
+        fill="url(#shieldGrad4)" stroke="none"/>
+  <!-- Shield inner border -->
+  <path d="M256 60 L428 128 C428 128 438 292 256 452 C74 292 84 128 84 128 Z"
+        fill="#1E1B4B" opacity="0.6"/>
+  <!-- Hourglass top triangle -->
+  <path d="M176 128 L336 128 L256 248 Z"
+        fill="none" stroke="url(#glassGrad)" stroke-width="10" stroke-linejoin="round"/>
+  <!-- Hourglass bottom triangle -->
+  <path d="M176 380 L336 380 L256 260 Z"
+        fill="none" stroke="url(#glassGrad)" stroke-width="10" stroke-linejoin="round"/>
+  <!-- Sand in top (partial) -->
+  <path d="M208 128 L304 128 L256 204 Z"
+        fill="url(#sandGrad)" opacity="0.4"/>
+  <!-- Sand in bottom (more full) -->
+  <path d="M196 380 L316 380 L256 296 Z"
+        fill="url(#sandGrad)" opacity="0.7"/>
+  <!-- Sand stream -->
+  <line x1="256" y1="248" x2="256" y2="296" stroke="#E0E7FF" stroke-width="4" opacity="0.8"/>
+  <!-- Top cap -->
+  <line x1="168" y1="128" x2="344" y2="128" stroke="#E0E7FF" stroke-width="8" stroke-linecap="round"/>
+  <!-- Bottom cap -->
+  <line x1="168" y1="380" x2="344" y2="380" stroke="#E0E7FF" stroke-width="8" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="sGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="50%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E1B4B"/>
+      <stop offset="100%" stop-color="#312E81"/>
+    </linearGradient>
+    <linearGradient id="lockAccent" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#A5B4FC"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect x="32" y="32" width="448" height="448" rx="96" ry="96"
+        fill="url(#bgGrad)"/>
+  <!-- Subtle inner border -->
+  <rect x="48" y="48" width="416" height="416" rx="84" ry="84"
+        fill="none" stroke="#6366F1" stroke-width="2" opacity="0.3"/>
+  <!-- Stylized S shape - geometric, constructed from curves -->
+  <path d="M320 140
+           C320 140 340 140 340 140
+           C340 140 340 140 320 140
+           L192 140
+           C152 140 128 168 128 200
+           C128 232 152 260 192 260
+           L320 260
+           C360 260 384 288 384 320
+           C384 352 360 380 320 380
+           L192 380
+           C172 380 172 380 192 380"
+        fill="none" stroke="url(#sGrad)" stroke-width="0" opacity="0"/>
+  <!-- Clean geometric S -->
+  <path d="M336 136 L196 136 C156 136 128 164 128 200 C128 236 156 264 196 264 L316 264 C356 264 384 292 384 328 C384 364 356 392 316 392 L176 392"
+        fill="none" stroke="url(#sGrad)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Lock keyhole on the S curve - positioned at center -->
+  <circle cx="256" cy="264" r="18" fill="#1E1B4B"/>
+  <rect x="249" y="264" width="14" height="24" rx="4" fill="#1E1B4B"/>
+  <!-- Small lock shackle hint at top -->
+  <path d="M232 148 L232 112 C232 92 244 80 256 80 C268 80 280 92 280 112 L280 148"
+        fill="none" stroke="url(#lockAccent)" stroke-width="12" stroke-linecap="round"/>
+</svg>
