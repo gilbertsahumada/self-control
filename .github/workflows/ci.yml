@@ -29,6 +29,23 @@ jobs:
       - name: Build release
         run: swift build -c release
 
+  integration-test:
+    runs-on: macos-14
+    needs: swift-build-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.0.app
+
+      - name: Build release
+        run: swift build -c release
+
+      - name: Run integration tests (hosts + pf)
+        run: sudo ./scripts/integration_test.sh
+
   web-build:
     runs-on: ubuntu-latest
 
