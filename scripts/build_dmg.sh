@@ -24,6 +24,12 @@ mkdir -p "$RESOURCES_PATH"
 cp ".build/release/SelfControl" "$MACOS_PATH/"
 cp ".build/release/SelfControlEnforcer" "$MACOS_PATH/"
 
+# Copy app icon if it exists
+if [ -f "assets/AppIcon.icns" ]; then
+  cp "assets/AppIcon.icns" "$RESOURCES_PATH/"
+  echo "App icon copied to Resources"
+fi
+
 # Create Info.plist
 cat > "$CONTENTS_PATH/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -50,6 +56,8 @@ cat > "$CONTENTS_PATH/Info.plist" << EOF
     <string>${APP_VERSION}</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>LSUIElement</key>
     <false/>
     <key>NSHumanReadableCopyright</key>

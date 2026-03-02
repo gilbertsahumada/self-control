@@ -63,14 +63,15 @@ jobs:
 
             1. Download `SelfControl-${{ steps.vars.outputs.version }}.dmg`
             2. Open the DMG and drag **SelfControl** to your Applications folder
-            3. Before opening for the first time, run this command in Terminal:
+            3. **Important — first launch only:** this app is ad-hoc signed and not notarized with Apple, so macOS Gatekeeper will block it. Open Terminal and run:
                ```
                xattr -cr /Applications/SelfControl.app
                ```
-            4. Open SelfControl from Applications
+               This removes the quarantine flag. You only need to do this once.
+            4. Open SelfControl from Applications — you're all set
 
-            > This step is required because the app is not notarized with Apple.
-            > You only need to do it once after downloading.
+            ### Why is this needed?
+            Apple requires paid Developer ID certificates to notarize apps. SelfControl is free and open source, so it uses ad-hoc signing. The `xattr` command tells macOS you trust this app.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
