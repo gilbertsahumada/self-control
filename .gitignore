@@ -12,3 +12,6 @@ DerivedData/
 !README.md
 !CONTRIBUTING.md
 !RELEASE.md
+
+# worktrees
+.claude/worktrees   
