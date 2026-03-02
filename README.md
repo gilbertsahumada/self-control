@@ -103,6 +103,10 @@ Landing page: `https://gilbertsahumada.github.io/self-control/`
 
 Release instructions: see `RELEASE.md`.
 
+## Troubleshooting
+
+If sites remain blocked after the timer expires, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for diagnosis and manual cleanup steps.
+
 ## Security
 
 - Input validation for custom domains (prevents injection)
