@@ -3,7 +3,7 @@
 # Requires: sudo, macOS (uses /etc/hosts and pf).
 # Runs on GitHub Actions macos-14 runner or locally with sudo.
 
-set -euo pipefail
+set -uo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -20,8 +20,8 @@ TEST_SITES=("x.com" "instagram.com" "youtube.com")
 
 # --- Helpers ---
 
-log()  { echo -e "${GREEN}[PASS]${NC} $1"; ((PASS++)); }
-fail() { echo -e "${RED}[FAIL]${NC} $1"; ((FAIL++)); }
+log()  { echo -e "${GREEN}[PASS]${NC} $1"; PASS=$((PASS + 1)); }
+fail() { echo -e "${RED}[FAIL]${NC} $1"; FAIL=$((FAIL + 1)); }
 info() { echo -e "${YELLOW}[INFO]${NC} $1"; }
 
 cleanup() {
@@ -52,11 +52,11 @@ trap cleanup EXIT
 check_dns() {
     local domain="$1"
     # Returns 0 if domain resolves to a real IP (not 127.0.0.1)
-    local result
-    result=$(dscacheutil -q host -a name "$domain" 2>/dev/null | grep "ip_address:" | head -1 | awk '{print $2}')
+    local result=""
+    result=$(dscacheutil -q host -a name "$domain" 2>/dev/null | grep "ip_address:" | head -1 | awk '{print $2}' || true)
     if [[ -z "$result" ]]; then
         # dscacheutil didn't return anything, try host command
-        result=$(host "$domain" 2>/dev/null | grep "has address" | head -1 | awk '{print $NF}')
+        result=$(host "$domain" 2>/dev/null | grep "has address" | head -1 | awk '{print $NF}' || true)
     fi
     if [[ "$result" == "127.0.0.1" ]]; then
         return 1  # Blocked
@@ -76,8 +76,8 @@ echo "========================================"
 echo ""
 
 # Verify we have sudo
-if ! sudo -n true 2>/dev/null; then
-    echo "Error: This script requires passwordless sudo (CI) or run with sudo."
+if [[ $EUID -ne 0 ]] && ! sudo -n true 2>/dev/null; then
+    echo "Error: This script requires root. Run with: sudo $0"
     exit 1
 fi
 
@@ -127,7 +127,7 @@ fi
 
 # Verify DNS now resolves to 127.0.0.1
 for site in "${TEST_SITES[@]}"; do
-    resolved=$(dscacheutil -q host -a name "$site" 2>/dev/null | grep "ip_address:" | head -1 | awk '{print $2}')
+    resolved=$(dscacheutil -q host -a name "$site" 2>/dev/null | grep "ip_address:" | head -1 | awk '{print $2}' || true)
     if [[ "$resolved" == "127.0.0.1" ]]; then
         log "BLOCKED: $site resolves to 127.0.0.1"
     else
@@ -169,7 +169,7 @@ fi
 # Verify sites resolve again after cleanup
 sleep 2
 for site in "${TEST_SITES[@]}"; do
-    resolved=$(host "$site" 8.8.8.8 2>/dev/null | grep "has address" | head -1 | awk '{print $NF}')
+    resolved=$(host "$site" 8.8.8.8 2>/dev/null | grep "has address" | head -1 | awk '{print $NF}' || true)
     if [[ -n "$resolved" && "$resolved" != "127.0.0.1" ]]; then
         log "UNBLOCKED: $site resolves to $resolved"
     else
