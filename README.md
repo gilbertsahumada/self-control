@@ -1,6 +1,10 @@
-# SelfControl
+<p align="center">
+  <img src="assets/logo.svg" width="128" height="128" alt="SelfControl logo" />
+</p>
 
-A native macOS SwiftUI app that blocks distracting websites for a set duration. Once started, there is **no way to undo** the blocking until the timer expires - perfect for focused work sessions.
+<h1 align="center">SelfControl</h1>
+
+<p align="center">A native macOS SwiftUI app that blocks distracting websites for a set duration.<br/>Once started, there is <b>no way to undo</b> the blocking until the timer expires — perfect for focused work sessions.</p>
 
 Built with Swift 5.9+ and SwiftUI. Requires macOS 13 (Ventura) or later.
 
@@ -21,8 +25,12 @@ Built with Swift 5.9+ and SwiftUI. Requires macOS 13 (Ventura) or later.
 ### Option 1: DMG (Recommended)
 
 1. Download the latest `SelfControl-X.X.X.dmg` from [Releases](https://github.com/gilbertsahumada/self-control/releases)
-2. Mount the DMG
-3. Drag `SelfControl.app` to Applications
+2. Mount the DMG and drag `SelfControl.app` to Applications
+3. **First launch only** — the app is ad-hoc signed (not notarized with Apple), so macOS Gatekeeper will block it. Run this once in Terminal to allow it:
+   ```bash
+   xattr -cr /Applications/SelfControl.app
+   ```
+4. Open SelfControl from Applications — no further steps needed
 
 ### Option 2: Build from Source
 

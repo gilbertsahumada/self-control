@@ -5,6 +5,7 @@ import { ArrowDownToLine, Lock, Shield, Zap } from 'lucide-react'
 import { Badge } from './components/ui/badge'
 import { Button } from './components/ui/button'
 import { Separator } from './components/ui/separator'
+import logoSvg from './assets/logo.svg'
 
 const OWNER = 'gilbertsahumada'
 const REPO = 'self-control'
@@ -85,7 +86,10 @@ function App() {
             macOS · Focus-first
           </Badge>
 
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">SelfControl</h1>
+          <div className="flex items-center gap-4">
+            <img src={logoSvg} alt="SelfControl logo" className="h-12 w-12 sm:h-14 sm:w-14" />
+            <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">SelfControl</h1>
+          </div>
           <p className="mt-4 max-w-xl text-base text-muted-foreground">
             A strict website blocker for deep work. Download the latest DMG and start a protected focus session.
           </p>

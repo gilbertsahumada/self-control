@@ -1,0 +1,44 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:self-control}",
+            "name": "Debug SelfControlEnforcer",
+            "target": "SelfControlEnforcer",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug SelfControlEnforcer"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:self-control}",
+            "name": "Release SelfControlEnforcer",
+            "target": "SelfControlEnforcer",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release SelfControlEnforcer"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:self-control}",
+            "name": "Debug SelfControl",
+            "target": "SelfControl",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug SelfControl"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:self-control}",
+            "name": "Release SelfControl",
+            "target": "SelfControl",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release SelfControl"
+        }
+    ]
+}
