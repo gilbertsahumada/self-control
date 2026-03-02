@@ -70,32 +70,30 @@ func applyBlocks(_ sites: [String], forceDNSFlush: Bool) {
 }
 
 func removeBlocks() {
-    guard let hostsContent = try? String(contentsOfFile: hostsPath, encoding: .utf8) else {
-        return
+    // Always clean hosts file — remove all BLOCKSITES entries
+    if let hostsContent = try? String(contentsOfFile: hostsPath, encoding: .utf8) {
+        let cleanedContent = HostsGenerator.cleanHostsContent(hostsContent, marker: marker)
+        if cleanedContent != hostsContent {
+            try? cleanedContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
+        }
     }
 
-    let cleanedContent = HostsGenerator.cleanHostsContent(hostsContent, marker: marker)
-    let currentHash = computeHostsHash(hostsContent)
-    let state = loadState()
+    // Always flush DNS cache on block expiry
+    runCommand("/usr/bin/dscacheutil", args: ["-flushcache"])
+    runCommand("/usr/bin/killall", args: ["-HUP", "mDNSResponder"])
 
-    if currentHash != state.lastHostsHash {
-        try? cleanedContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
-        
-        runCommand("/usr/bin/dscacheutil", args: ["-flushcache"])
-        runCommand("/usr/bin/killall", args: ["-HUP", "mDNSResponder"])
-    }
-
+    // Remove firewall rules and clean pf.conf
     FirewallManager.shared.removeFirewallRules()
 
+    // Clean up app data files
     try? FileManager.default.removeItem(atPath: configPath)
     try? FileManager.default.removeItem(atPath: "/Library/Application Support/BlockSites/ip_cache.json")
     try? FileManager.default.removeItem(atPath: "/Library/Application Support/BlockSites/hosts.backup")
     try? FileManager.default.removeItem(atPath: stateFilePath)
 
+    // Unload and remove daemon plist — must be last since it stops this process
     let plistPath = "/Library/LaunchDaemons/com.blocksites.enforcer.plist"
-
     runCommand("/bin/launchctl", args: ["unload", "-w", plistPath])
-
     try? FileManager.default.removeItem(atPath: plistPath)
 }
 

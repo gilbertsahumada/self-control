@@ -1,4 +1,5 @@
 import Foundation
+import SelfControlCore
 
 class FirewallManager {
     static let shared = FirewallManager()
@@ -54,30 +55,59 @@ class FirewallManager {
     }
 
     func removeFirewallRules() {
-        try? FileManager.default.removeItem(atPath: pfRulesPath)
-
+        // 1. Clean pf.conf FIRST (while anchor file still exists, so pfctl reload works)
         removePfAnchor()
 
-        try? runCommand("/sbin/pfctl", args: ["-d"])
-        
-        try? runCommand("/sbin/pfctl", args: ["-f", "/etc/pf.conf"])
+        // 2. Disable pf to restore normal networking
+        do {
+            try runCommand("/sbin/pfctl", args: ["-d"])
+        } catch {
+            log("Warning: failed to disable pf: \(error)")
+        }
+
+        // 3. Reload clean pf.conf
+        do {
+            try runCommand("/sbin/pfctl", args: ["-f", "/etc/pf.conf"])
+        } catch {
+            log("Warning: failed to reload pf.conf: \(error)")
+        }
+
+        // 4. Delete anchor file last (pf.conf no longer references it)
+        try? FileManager.default.removeItem(atPath: pfRulesPath)
     }
 
     private func removePfAnchor() {
         let pfConfPath = "/etc/pf.conf"
         guard let pfConf = try? String(contentsOfFile: pfConfPath, encoding: .utf8) else {
+            log("Error: could not read \(pfConfPath)")
             return
         }
 
-        let lines = pfConf.components(separatedBy: .newlines)
-        let cleanedLines = lines.filter { line in
-            !line.contains("# BlockSites anchor") &&
-            !line.contains("anchor \"com.blocksites\"") &&
-            !line.contains("load anchor \"com.blocksites\"")
-        }
+        let (cleanedConf, didChange) = PfConfCleaner.cleanPfConfContent(pfConf)
+        guard didChange else { return }
 
-        let cleanedConf = cleanedLines.joined(separator: "\n")
-        try? cleanedConf.write(toFile: pfConfPath, atomically: true, encoding: .utf8)
+        do {
+            try cleanedConf.write(toFile: pfConfPath, atomically: true, encoding: .utf8)
+        } catch {
+            // Atomic write failed — retry with non-atomic write
+            log("Warning: atomic write to pf.conf failed (\(error)), retrying non-atomic")
+            do {
+                try cleanedConf.write(toFile: pfConfPath, atomically: false, encoding: .utf8)
+            } catch {
+                log("Error: failed to clean pf.conf: \(error)")
+            }
+        }
+    }
+
+    private func log(_ message: String) {
+        let logPath = "/Library/Application Support/BlockSites/enforcer.log"
+        let timestamp = ISO8601DateFormatter().string(from: Date())
+        let entry = "[\(timestamp)] \(message)\n"
+        if let handle = FileHandle(forWritingAtPath: logPath) {
+            handle.seekToEndOfFile()
+            handle.write(entry.data(using: .utf8) ?? Data())
+            handle.closeFile()
+        }
     }
 
     private func loadFirewallRules() throws {
