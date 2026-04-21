@@ -4,64 +4,77 @@ import SelfControlCore
 struct SetupView: View {
     @EnvironmentObject var viewModel: BlockViewModel
 
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                header
+    private let banner = """
+ ███████ ███████ ██      ███████  ██████ ████████ ██████  ██
+ ██      ██      ██      ██      ██         ██    ██   ██ ██
+ ███████ █████   ██      █████   ██         ██    ██████  ██
+      ██ ██      ██      ██      ██         ██    ██   ██ ██
+ ███████ ███████ ███████ ██       ██████    ██    ██   ██ ███████
+"""
 
-                section(title: "[ TARGETS ]") {
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 8),
-                        GridItem(.flexible(), spacing: 8),
-                        GridItem(.flexible(), spacing: 8)
-                    ], spacing: 8) {
-                        ForEach(PopularSite.allSites) { site in
-                            siteToggle(site)
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    bannerBlock
+                    promptLine
+                    Divider().background(Theme.phosphorMuted)
+
+                    section("TARGETS") {
+                        LazyVGrid(columns: [
+                            GridItem(.flexible(), spacing: 6),
+                            GridItem(.flexible(), spacing: 6)
+                        ], spacing: 6) {
+                            ForEach(PopularSite.allSites) { site in
+                                siteToggle(site)
+                            }
                         }
                     }
-                }
 
-                section(title: "[ CUSTOM DOMAINS ]") {
-                    HStack(spacing: 6) {
-                        Text(">")
-                            .foregroundColor(Theme.phosphorDim)
-                        TextField("", text: $viewModel.customSitesText, prompt: Text("example.com, another.com").foregroundColor(Theme.phosphorMuted))
-                            .textFieldStyle(.plain)
-                            .font(Theme.mono)
-                            .foregroundColor(Theme.phosphor)
+                    section("CUSTOM DOMAINS") {
+                        HStack(spacing: 6) {
+                            Text(">")
+                                .font(Theme.monoMD)
+                                .foregroundColor(Theme.phosphorDim)
+                            TextField("", text: $viewModel.customSitesText,
+                                      prompt: Text("example.com,another.com")
+                                        .foregroundColor(Theme.phosphorMuted))
+                                .textFieldStyle(.plain)
+                                .font(Theme.monoMD)
+                                .foregroundColor(Theme.phosphor)
+                            BlinkingCursor(size: 12)
+                        }
+                        .padding(10)
+                        .background(Theme.surface)
+                        .overlay(Rectangle().stroke(Theme.phosphorMuted, lineWidth: 1))
                     }
-                    .padding(10)
-                    .background(Theme.surface)
-                    .terminalBox()
-                }
 
-                section(title: "[ DURATION ]") {
-                    HStack(spacing: 16) {
-                        durationField(label: "HRS", value: $viewModel.hours, range: 0...24)
-                        durationField(label: "MIN", value: $viewModel.minutes, range: 0...59)
-                        Spacer()
+                    section("DURATION") {
+                        HStack(spacing: 20) {
+                            durationField(label: "HRS", value: $viewModel.hours, range: 0...24)
+                            durationField(label: "MIN", value: $viewModel.minutes, range: 0...59)
+                            Spacer()
+                        }
                     }
-                }
 
-                if let error = viewModel.errorMessage {
-                    Text("! \(error)")
-                        .font(Theme.monoSmall)
-                        .foregroundColor(Theme.danger)
-                }
+                    if let error = viewModel.errorMessage {
+                        Text("!! ERROR: \(error.uppercased())")
+                            .font(Theme.monoSM)
+                            .foregroundColor(Theme.danger)
+                    }
 
-                startButton
+                    executeButton
 
-                HStack(spacing: 4) {
-                    Text("//")
-                        .foregroundColor(Theme.phosphorMuted)
-                    Text("NO ABORT. NO OVERRIDE. TIMER IS LAW.")
-                        .font(Theme.monoSmall)
-                        .foregroundColor(Theme.phosphorDim)
+                    Text("// WARNING: LOCKDOWN CANNOT BE ABORTED ONCE INITIATED")
+                        .font(Theme.monoXS)
+                        .foregroundColor(Theme.amber.opacity(0.7))
                 }
+                .padding(24)
             }
-            .padding(28)
+
+            statusBar
         }
-        .alert("CONFIRM BLOCK", isPresented: $viewModel.showConfirmation) {
+        .alert("[ CONFIRM LOCKDOWN ]", isPresented: $viewModel.showConfirmation) {
             Button("ABORT", role: .cancel) {}
             Button("EXECUTE", role: .destructive) {
                 viewModel.startBlocking()
@@ -69,31 +82,38 @@ struct SetupView: View {
         } message: {
             let sites = viewModel.allSitesToBlock
             let duration = TimeFormatter.formatDurationShort(viewModel.totalDurationSeconds)
-            Text("Lockdown \(sites.count) target(s) for \(duration).\n\nIrreversible until timer expires.")
+            Text("LOCKDOWN \(sites.count) TARGET(S) FOR \(duration.uppercased()).\n\nIRREVERSIBLE UNTIL TIMER EXPIRES.")
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                Text("$")
-                    .foregroundColor(Theme.phosphorDim)
-                Text("selfcontrol")
-                    .font(.system(.largeTitle, design: .monospaced).weight(.bold))
-                    .foregroundColor(Theme.phosphor)
-                BlinkingCursor()
-            }
-            Text("// distraction suppressor v1.0")
-                .font(Theme.monoSmall)
+    private var bannerBlock: some View {
+        Text(banner)
+            .font(Theme.mono(9, weight: .bold))
+            .foregroundColor(Theme.phosphor)
+            .shadow(color: Theme.phosphorGlow, radius: 3)
+            .lineSpacing(-2)
+            .fixedSize(horizontal: true, vertical: true)
+    }
+
+    private var promptLine: some View {
+        HStack(spacing: 6) {
+            Text("user@local:~$")
+                .font(Theme.monoSM)
+                .foregroundColor(Theme.phosphorDim)
+            Text("selfcontrol --init")
+                .font(Theme.monoSM)
+                .foregroundColor(Theme.phosphor)
+            BlinkingCursor(size: 11)
+            Spacer()
+            Text("v1.0.0")
+                .font(Theme.monoSM)
                 .foregroundColor(Theme.phosphorMuted)
         }
     }
 
-    private func section<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(Theme.monoSmall.weight(.semibold))
-                .foregroundColor(Theme.phosphorDim)
+            SectionHeader(title: title)
             content()
         }
     }
@@ -101,46 +121,52 @@ struct SetupView: View {
     private func durationField(label: String, value: Binding<Int>, range: ClosedRange<Int>) -> some View {
         HStack(spacing: 8) {
             Text(label)
-                .font(Theme.monoSmall)
+                .font(Theme.monoSM)
                 .foregroundColor(Theme.phosphorDim)
             HStack(spacing: 0) {
-                Button(action: { if value.wrappedValue > range.lowerBound { value.wrappedValue -= 1 } }) {
-                    Text("-")
-                        .font(Theme.mono.weight(.bold))
-                        .foregroundColor(Theme.phosphor)
-                        .frame(width: 26, height: 30)
+                stepperButton("◀") {
+                    if value.wrappedValue > range.lowerBound { value.wrappedValue -= 1 }
                 }
-                .buttonStyle(.plain)
                 Text(String(format: "%02d", value.wrappedValue))
-                    .font(Theme.mono.weight(.bold))
+                    .font(Theme.mono(15, weight: .bold))
                     .foregroundColor(Theme.phosphor)
-                    .frame(width: 36, height: 30)
+                    .frame(width: 44, height: 28)
                     .background(Theme.surface)
-                Button(action: { if value.wrappedValue < range.upperBound { value.wrappedValue += 1 } }) {
-                    Text("+")
-                        .font(Theme.mono.weight(.bold))
-                        .foregroundColor(Theme.phosphor)
-                        .frame(width: 26, height: 30)
+                stepperButton("▶") {
+                    if value.wrappedValue < range.upperBound { value.wrappedValue += 1 }
                 }
-                .buttonStyle(.plain)
             }
-            .terminalBox()
+            .overlay(Rectangle().stroke(Theme.phosphorMuted, lineWidth: 1))
         }
     }
 
-    private var startButton: some View {
+    private func stepperButton(_ symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(symbol)
+                .font(Theme.monoSM.weight(.bold))
+                .foregroundColor(Theme.phosphor)
+                .frame(width: 26, height: 28)
+                .background(Theme.surface)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var executeButton: some View {
         Button(action: { viewModel.showConfirmation = true }) {
-            HStack {
+            HStack(spacing: 8) {
                 if viewModel.isProcessing {
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(Theme.background)
+                    Text("// PROCESSING...")
+                        .font(Theme.monoMD.weight(.bold))
                 } else {
-                    Text("▶ EXECUTE LOCKDOWN")
-                        .font(Theme.mono.weight(.bold))
-                        .foregroundColor(Theme.background)
+                    Text(">>")
+                        .font(Theme.monoMD.weight(.bold))
+                    Text("EXECUTE_LOCKDOWN.sh")
+                        .font(Theme.monoMD.weight(.bold))
+                    Text("<<")
+                        .font(Theme.monoMD.weight(.bold))
                 }
             }
+            .foregroundColor(Theme.background)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
             .background(
@@ -160,24 +186,50 @@ struct SetupView: View {
                 viewModel.selectedSites.insert(site.domain)
             }
         }) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 4) {
-                    Text(isSelected ? "[x]" : "[ ]")
+            HStack(spacing: 8) {
+                Text(isSelected ? "[■]" : "[ ]")
+                    .font(Theme.monoMD.weight(.bold))
+                    .foregroundColor(isSelected ? Theme.phosphor : Theme.phosphorDim)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(site.domain)
+                        .font(Theme.monoMD.weight(.semibold))
                         .foregroundColor(isSelected ? Theme.phosphor : Theme.phosphorDim)
-                    Text(site.name.lowercased())
-                        .font(Theme.mono.weight(.semibold))
-                        .foregroundColor(isSelected ? Theme.phosphor : Theme.phosphorDim)
+                    let count = DomainExpander.subdomainCount(for: site.domain)
+                    Text("+\(count) subs")
+                        .font(Theme.monoXS)
+                        .foregroundColor(Theme.phosphorMuted)
                 }
-                let count = DomainExpander.subdomainCount(for: site.domain)
-                Text("+\(count) subdomains")
-                    .font(Theme.monoSmall)
-                    .foregroundColor(Theme.phosphorMuted)
+                Spacer()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
-            .background(isSelected ? Theme.phosphor.opacity(0.08) : Theme.surface)
-            .terminalBox(color: isSelected ? Theme.phosphor : Theme.phosphorMuted)
+            .background(isSelected ? Theme.phosphor.opacity(0.1) : Theme.surface)
+            .overlay(Rectangle().stroke(isSelected ? Theme.phosphor : Theme.phosphorMuted, lineWidth: 1))
         }
         .buttonStyle(.plain)
+    }
+
+    private var statusBar: some View {
+        HStack(spacing: 0) {
+            Text(" READY ")
+                .font(Theme.monoSM.weight(.bold))
+                .foregroundColor(Theme.background)
+                .padding(.horizontal, 4)
+                .background(Theme.phosphor)
+            Text(" TARGETS:\(viewModel.allSitesToBlock.count) ")
+                .font(Theme.monoSM)
+                .foregroundColor(Theme.phosphor)
+                .background(Theme.surface)
+            Text(" DUR:\(viewModel.hours)h\(String(format: "%02d", viewModel.minutes))m ")
+                .font(Theme.monoSM)
+                .foregroundColor(Theme.phosphorDim)
+            Spacer()
+            Text("tty0 ")
+                .font(Theme.monoSM)
+                .foregroundColor(Theme.phosphorMuted)
+        }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .background(Theme.surface)
+        .overlay(Rectangle().frame(height: 1).foregroundColor(Theme.phosphorMuted), alignment: .top)
     }
 }

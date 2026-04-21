@@ -14,8 +14,13 @@ struct ContentView: View {
                     SetupView()
                 }
             }
+
+            Scanlines()
+                .ignoresSafeArea()
+            CRTFlicker()
+                .ignoresSafeArea()
         }
-        .frame(minWidth: 520, minHeight: 600)
+        .frame(minWidth: 560, minHeight: 640)
         .preferredColorScheme(.dark)
     }
 }
