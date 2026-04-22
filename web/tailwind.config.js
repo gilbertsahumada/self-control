@@ -34,6 +34,20 @@ export default {
         phosphor: '0 0 20px rgba(115, 255, 140, 0.35)',
         phosphorSoft: '0 0 8px rgba(115, 255, 140, 0.2)',
       },
+      keyframes: {
+        'crt-flicker': {
+          '0%, 100%': { opacity: '0.02' },
+          '50%': { opacity: '0.08' },
+        },
+        blink: {
+          '0%, 49%': { opacity: '1' },
+          '50%, 100%': { opacity: '0' },
+        },
+      },
+      animation: {
+        'crt-flicker': 'crt-flicker 0.3s ease-in-out infinite',
+        blink: 'blink 1.1s step-end infinite',
+      },
     },
   },
   plugins: [],
