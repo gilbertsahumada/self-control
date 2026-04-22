@@ -44,7 +44,7 @@ export function Features() {
               <span className="text-xs text-phosphor-muted">{f.id}.</span>
               <h3 className="text-sm font-bold tracking-wider text-phosphor">{f.title}</h3>
             </header>
-            <p className="mt-2 text-xs leading-relaxed text-phosphor-dim">{f.description}</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-foreground">{f.description}</p>
           </article>
         ))}
       </div>

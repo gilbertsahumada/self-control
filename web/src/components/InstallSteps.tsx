@@ -33,7 +33,7 @@ export function InstallSteps() {
               <span className="text-phosphor-dim">$</span>
               <code className="text-phosphor">{s.prompt}</code>
             </div>
-            <p className="mt-1 pl-7 text-[11px] text-phosphor-muted sm:text-xs">
+            <p className="mt-1 pl-7 text-[12px] leading-relaxed text-foreground sm:text-[13px]">
               <span className="text-phosphor-muted">// </span>
               {s.output}
             </p>

@@ -74,7 +74,7 @@ export function Hero() {
         {BANNER}
       </pre>
 
-      <p className="mt-6 max-w-xl text-sm leading-relaxed text-phosphor-dim">
+      <p className="mt-6 max-w-xl text-sm leading-relaxed text-foreground">
         <span className="text-phosphor-muted">// </span>
         strict macOS website blocker for deep work. once the timer starts there
         is no abort — until it expires.
