@@ -18,7 +18,18 @@ struct ActiveBlockView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     Text(banner)
                         .font(Theme.mono(9, weight: .bold))
-                        .foregroundColor(Theme.danger)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 1.0, green: 0.85, blue: 0.3),
+                                    Color(red: 1.0, green: 0.5, blue: 0.25),
+                                    Color(red: 1.0, green: 0.3, blue: 0.35),
+                                    Color(red: 0.75, green: 0.15, blue: 0.2)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
                         .shadow(color: Theme.danger.opacity(0.6), radius: 3)
                         .lineSpacing(-2)
                         .fixedSize(horizontal: true, vertical: true)

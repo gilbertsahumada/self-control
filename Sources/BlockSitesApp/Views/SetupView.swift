@@ -42,7 +42,7 @@ struct SetupView: View {
                                 .textFieldStyle(.plain)
                                 .font(Theme.monoMD)
                                 .foregroundColor(Theme.phosphor)
-                            BlinkingCursor(size: 12)
+                                .tint(Theme.phosphor)
                         }
                         .padding(10)
                         .background(Theme.surface)
@@ -89,7 +89,18 @@ struct SetupView: View {
     private var bannerBlock: some View {
         Text(banner)
             .font(Theme.mono(9, weight: .bold))
-            .foregroundColor(Theme.phosphor)
+            .foregroundStyle(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.85, green: 1.0, blue: 0.9),
+                        Color(red: 0.45, green: 1.0, blue: 0.55),
+                        Color(red: 0.2, green: 0.9, blue: 0.7),
+                        Color(red: 0.15, green: 0.6, blue: 0.5)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
             .shadow(color: Theme.phosphorGlow, radius: 3)
             .lineSpacing(-2)
             .fixedSize(horizontal: true, vertical: true)
@@ -103,7 +114,6 @@ struct SetupView: View {
             Text("selfcontrol --init")
                 .font(Theme.monoSM)
                 .foregroundColor(Theme.phosphor)
-            BlinkingCursor(size: 11)
             Spacer()
             Text("v1.0.0")
                 .font(Theme.monoSM)

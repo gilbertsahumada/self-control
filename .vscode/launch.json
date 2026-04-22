@@ -39,6 +39,46 @@
             "target": "SelfControl",
             "configuration": "release",
             "preLaunchTask": "swift: Build Release SelfControl"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:self-control}",
+            "name": "Debug MonkModeEnforcer",
+            "target": "MonkModeEnforcer",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug MonkModeEnforcer"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:self-control}",
+            "name": "Release MonkModeEnforcer",
+            "target": "MonkModeEnforcer",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release MonkModeEnforcer"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:self-control}",
+            "name": "Debug MonkMode",
+            "target": "MonkMode",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug MonkMode"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:self-control}",
+            "name": "Release MonkMode",
+            "target": "MonkMode",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release MonkMode"
         }
     ]
 }
