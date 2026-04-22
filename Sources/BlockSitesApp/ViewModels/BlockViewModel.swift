@@ -6,7 +6,9 @@ class BlockViewModel: ObservableObject {
     // MARK: - Setup State
 
     @Published var selectedSites: Set<String> = []
-    @Published var customSitesText: String = ""
+    @Published var customDomains: [String] = []
+    @Published var pendingDomainInput: String = ""
+    @Published var pendingDomainError: String?
     @Published var hours: Int = 0
     @Published var minutes: Int = 30
 
@@ -42,20 +44,9 @@ class BlockViewModel: ObservableObject {
     // MARK: - Computed Properties
 
     var allSitesToBlock: [String] {
-        let (valid, _) = DomainValidator.validateAndClean(customSitesText
-            .split(separator: ",")
-            .map { String($0) })
         var sites = Array(selectedSites)
-        sites.append(contentsOf: valid)
+        sites.append(contentsOf: customDomains)
         return Array(Set(sites)).sorted()
-    }
-
-    var invalidDomains: [String] {
-        let custom = customSitesText
-            .split(separator: ",")
-            .map { String($0) }
-        let (_, invalid) = DomainValidator.validateAndClean(custom)
-        return invalid
     }
 
     var totalDurationSeconds: TimeInterval {
@@ -64,6 +55,41 @@ class BlockViewModel: ObservableObject {
 
     var canStartBlocking: Bool {
         !allSitesToBlock.isEmpty && totalDurationSeconds > 0
+    }
+
+    // MARK: - Custom Domain Input
+
+    /// Validates `pendingDomainInput` and appends it to `customDomains` on
+    /// success. Publishes `pendingDomainError` on failure so the UI can
+    /// render inline feedback. Accepts one domain per call; splitting on
+    /// whitespace/comma is handled by the view before calling.
+    @discardableResult
+    func commitPendingDomain() -> Bool {
+        let raw = pendingDomainInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else {
+            pendingDomainError = nil
+            return false
+        }
+
+        let (valid, invalid) = DomainValidator.validateAndClean([raw])
+        guard let cleaned = valid.first else {
+            pendingDomainError = "invalid domain: \(invalid.first ?? raw)"
+            return false
+        }
+
+        if customDomains.contains(cleaned) || selectedSites.contains(cleaned) {
+            pendingDomainError = "already in list: \(cleaned)"
+            return false
+        }
+
+        customDomains.append(cleaned)
+        pendingDomainInput = ""
+        pendingDomainError = nil
+        return true
+    }
+
+    func removeCustomDomain(_ domain: String) {
+        customDomains.removeAll { $0 == domain }
     }
 
     var progress: Double {
@@ -244,7 +270,9 @@ class BlockViewModel: ObservableObject {
                 self.config = nil
                 self.remainingSeconds = 0
                 self.selectedSites = []
-                self.customSitesText = ""
+                self.customDomains = []
+                self.pendingDomainInput = ""
+                self.pendingDomainError = nil
                 // Poll the hosts file for up to `postExpiryGraceSeconds` so the
                 // LaunchDaemon has time to run cleanup before we surface the
                 // stale-block banner. Normal path: banner never appears.
