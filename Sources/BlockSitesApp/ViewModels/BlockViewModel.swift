@@ -57,6 +57,41 @@ class BlockViewModel: ObservableObject {
         !allSitesToBlock.isEmpty && totalDurationSeconds > 0
     }
 
+    // MARK: - Custom Domain Input
+
+    /// Validates `pendingDomainInput` and appends it to `customDomains` on
+    /// success. Publishes `pendingDomainError` on failure so the UI can
+    /// render inline feedback. Accepts one domain per call; splitting on
+    /// whitespace/comma is handled by the view before calling.
+    @discardableResult
+    func commitPendingDomain() -> Bool {
+        let raw = pendingDomainInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else {
+            pendingDomainError = nil
+            return false
+        }
+
+        let (valid, invalid) = DomainValidator.validateAndClean([raw])
+        guard let cleaned = valid.first else {
+            pendingDomainError = "invalid domain: \(invalid.first ?? raw)"
+            return false
+        }
+
+        if customDomains.contains(cleaned) || selectedSites.contains(cleaned) {
+            pendingDomainError = "already in list: \(cleaned)"
+            return false
+        }
+
+        customDomains.append(cleaned)
+        pendingDomainInput = ""
+        pendingDomainError = nil
+        return true
+    }
+
+    func removeCustomDomain(_ domain: String) {
+        customDomains.removeAll { $0 == domain }
+    }
+
     var progress: Double {
         guard let config = config else { return 0 }
         let total = config.endTime.timeIntervalSince(config.startTime)
