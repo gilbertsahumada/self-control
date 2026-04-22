@@ -21,7 +21,7 @@ enum PrivilegedExecutor {
     static func run(_ shellScript: String) throws {
         let tempDir = FileManager.default.temporaryDirectory
         
-        let scriptPath = tempDir.appendingPathComponent("blocksites_script_\(UUID().uuidString).sh")
+        let scriptPath = tempDir.appendingPathComponent("monkmode_script_\(UUID().uuidString).sh")
         try shellScript.write(to: scriptPath, atomically: true, encoding: .utf8)
         
         defer {

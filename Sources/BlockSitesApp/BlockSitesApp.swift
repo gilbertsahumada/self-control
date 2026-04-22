@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 @main
-struct SelfControlApp: App {
+struct MonkModeApp: App {
     @StateObject private var viewModel = BlockViewModel()
 
     init() {

@@ -1,5 +1,5 @@
 import Foundation
-import SelfControlCore
+import MonkModeCore
 
 enum FirewallManager {
     /// IPCache must match the enforcer's IPCache struct exactly for JSON compatibility.
@@ -112,7 +112,7 @@ enum FirewallManager {
     }
 
     private static func buildFirewallResponse(domainIPs: [String: [String]], domainCIDRs: [String: [String]]) -> (rules: String, cacheData: Data?) {
-        var rules = "# BlockSites firewall rules\n"
+        var rules = "# MonkMode firewall rules\n"
 
         for (_, ips) in domainIPs {
             for ip in ips {

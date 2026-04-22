@@ -1,5 +1,5 @@
 import SwiftUI
-import SelfControlCore
+import MonkModeCore
 
 struct ActiveBlockView: View {
     @EnvironmentObject var viewModel: BlockViewModel
