@@ -6,7 +6,9 @@ class BlockViewModel: ObservableObject {
     // MARK: - Setup State
 
     @Published var selectedSites: Set<String> = []
-    @Published var customSitesText: String = ""
+    @Published var customDomains: [String] = []
+    @Published var pendingDomainInput: String = ""
+    @Published var pendingDomainError: String?
     @Published var hours: Int = 0
     @Published var minutes: Int = 30
 
@@ -42,20 +44,9 @@ class BlockViewModel: ObservableObject {
     // MARK: - Computed Properties
 
     var allSitesToBlock: [String] {
-        let (valid, _) = DomainValidator.validateAndClean(customSitesText
-            .split(separator: ",")
-            .map { String($0) })
         var sites = Array(selectedSites)
-        sites.append(contentsOf: valid)
+        sites.append(contentsOf: customDomains)
         return Array(Set(sites)).sorted()
-    }
-
-    var invalidDomains: [String] {
-        let custom = customSitesText
-            .split(separator: ",")
-            .map { String($0) }
-        let (_, invalid) = DomainValidator.validateAndClean(custom)
-        return invalid
     }
 
     var totalDurationSeconds: TimeInterval {
@@ -244,7 +235,9 @@ class BlockViewModel: ObservableObject {
                 self.config = nil
                 self.remainingSeconds = 0
                 self.selectedSites = []
-                self.customSitesText = ""
+                self.customDomains = []
+                self.pendingDomainInput = ""
+                self.pendingDomainError = nil
                 // Poll the hosts file for up to `postExpiryGraceSeconds` so the
                 // LaunchDaemon has time to run cleanup before we surface the
                 // stale-block banner. Normal path: banner never appears.
