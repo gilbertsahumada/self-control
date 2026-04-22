@@ -62,13 +62,10 @@ export function Hero() {
         aria-label="MONKMODE"
         className="mt-6 overflow-x-auto text-[6px] leading-[7px] sm:text-[9px] sm:leading-[10px]"
         style={{
-          color: 'hsl(var(--phosphor))',
-          textShadow: '0 0 6px hsl(var(--phosphor) / 0.55)',
           background:
-            'linear-gradient(180deg, hsl(130 100% 85%) 0%, hsl(130 100% 65%) 35%, hsl(160 90% 55%) 75%, hsl(165 70% 35%) 100%)',
+            'linear-gradient(180deg, hsl(120 40% 82%) 0%, hsl(130 55% 70%) 40%, hsl(150 45% 58%) 80%, hsl(160 40% 42%) 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
-          filter: 'drop-shadow(0 0 6px hsl(var(--phosphor) / 0.45))',
         }}
       >
         {BANNER}
@@ -85,14 +82,14 @@ export function Hero() {
           href={release.downloadUrl}
           target="_blank"
           rel="noreferrer"
-          className="group inline-flex items-center gap-2 bg-phosphor px-5 py-3 text-sm font-bold text-background shadow-phosphor transition-colors hover:bg-phosphor-dim"
+          className="group inline-flex items-center gap-2 bg-phosphor px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-phosphor-dim"
         >
           <span>{'>>'}</span>
           <span>DOWNLOAD.dmg</span>
           <span>{'<<'}</span>
         </a>
         <div className="inline-flex items-center gap-2 border border-phosphor-muted px-3 py-3 text-xs text-phosphor-dim">
-          <span className="inline-block h-2 w-2 bg-phosphor shadow-phosphorSoft" />
+          <span className="inline-block h-2 w-2 bg-phosphor" />
           {release.loading ? 'checking release...' : `latest: ${release.version}`}
         </div>
       </div>
