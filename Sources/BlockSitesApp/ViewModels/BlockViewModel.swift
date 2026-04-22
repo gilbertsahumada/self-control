@@ -22,8 +22,18 @@ class BlockViewModel: ObservableObject {
     @Published var isProcessing: Bool = false
     @Published var errorMessage: String?
     @Published var needsRecoveryCleanup: Bool = false
+    @Published var isWaitingForDaemonCleanup: Bool = false
+
+    /// Seconds after timer expiry during which we suppress the stale-block
+    /// banner while polling to give the LaunchDaemon time to run cleanup.
+    /// The primary enforcer daemon runs every 60s so 90s gives a full cycle
+    /// plus launchd wake-up slack.
+    static let postExpiryGraceSeconds: TimeInterval = 90
+    static let postExpiryPollInterval: TimeInterval = 10
 
     private var timer: Timer?
+    private var postExpiryPollTimer: Timer?
+    private var postExpiryDeadline: Date?
 
     init() {
         checkExistingBlock()
@@ -103,6 +113,34 @@ class BlockViewModel: ObservableObject {
             isBlocking = false
             config = nil
             needsRecoveryCleanup = detectStaleBlock()
+        }
+    }
+
+    /// Polls `/etc/hosts` every `postExpiryPollInterval` for up to
+    /// `postExpiryGraceSeconds` after block expiry before surfacing the
+    /// stale-block banner. In the normal path the enforcer daemon cleans
+    /// up within 60s and the banner never appears.
+    private func startPostExpiryPolling() {
+        postExpiryPollTimer?.invalidate()
+        postExpiryDeadline = Date().addingTimeInterval(Self.postExpiryGraceSeconds)
+        isWaitingForDaemonCleanup = true
+        needsRecoveryCleanup = false
+
+        postExpiryPollTimer = Timer.scheduledTimer(withTimeInterval: Self.postExpiryPollInterval, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            if !self.detectStaleBlock() {
+                self.postExpiryPollTimer?.invalidate()
+                self.postExpiryPollTimer = nil
+                self.isWaitingForDaemonCleanup = false
+                self.needsRecoveryCleanup = false
+                return
+            }
+            if let deadline = self.postExpiryDeadline, Date() >= deadline {
+                self.postExpiryPollTimer?.invalidate()
+                self.postExpiryPollTimer = nil
+                self.isWaitingForDaemonCleanup = false
+                self.needsRecoveryCleanup = true
+            }
         }
     }
 
@@ -207,10 +245,10 @@ class BlockViewModel: ObservableObject {
                 self.remainingSeconds = 0
                 self.selectedSites = []
                 self.customSitesText = ""
-                // Give daemons a few seconds to run their cleanup, then verify.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
-                    self?.checkExistingBlock()
-                }
+                // Poll the hosts file for up to `postExpiryGraceSeconds` so the
+                // LaunchDaemon has time to run cleanup before we surface the
+                // stale-block banner. Normal path: banner never appears.
+                self.startPostExpiryPolling()
             } else {
                 self.remainingSeconds = remaining
                 if remaining <= 60 && interval != 1 {

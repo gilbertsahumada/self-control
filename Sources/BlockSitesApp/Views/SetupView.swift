@@ -20,7 +20,9 @@ struct SetupView: View {
                     promptLine
                     Divider().background(Theme.phosphorMuted)
 
-                    if viewModel.needsRecoveryCleanup {
+                    if viewModel.isWaitingForDaemonCleanup {
+                        waitingBanner
+                    } else if viewModel.needsRecoveryCleanup {
                         recoveryBanner
                     }
 
@@ -108,6 +110,24 @@ struct SetupView: View {
             .shadow(color: Theme.phosphorGlow, radius: 3)
             .lineSpacing(-2)
             .fixedSize(horizontal: true, vertical: true)
+    }
+
+    private var waitingBanner: some View {
+        HStack(spacing: 8) {
+            Text("..")
+                .font(Theme.monoSM.weight(.bold))
+                .foregroundColor(Theme.phosphorDim)
+            Text("waiting for daemon cleanup")
+                .font(Theme.monoSM)
+                .foregroundColor(Theme.phosphorDim)
+            Spacer()
+            Text("polling...")
+                .font(Theme.monoSM)
+                .foregroundColor(Theme.phosphorMuted)
+        }
+        .padding(10)
+        .background(Theme.surface)
+        .overlay(Rectangle().stroke(Theme.phosphorMuted, lineWidth: 1))
     }
 
     private var recoveryBanner: some View {
