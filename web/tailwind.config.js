@@ -22,7 +22,7 @@ export default {
         border: 'hsl(var(--border))',
       },
       fontFamily: {
-        mono: ['Menlo', 'Monaco', 'Courier New', 'monospace'],
+        mono: ['"JetBrains Mono"', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
       },
       borderRadius: {
         none: '0',
@@ -36,8 +36,8 @@ export default {
       },
       keyframes: {
         'crt-flicker': {
-          '0%, 100%': { opacity: '0.02' },
-          '50%': { opacity: '0.08' },
+          '0%, 100%': { opacity: '0.3' },
+          '50%': { opacity: '0.9' },
         },
         blink: {
           '0%, 49%': { opacity: '1' },

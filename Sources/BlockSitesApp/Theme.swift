@@ -1,35 +1,50 @@
 import SwiftUI
 
 enum Theme {
-    static let background = Color(red: 0.015, green: 0.025, blue: 0.015)
-    static let surface = Color(red: 0.03, green: 0.05, blue: 0.03)
-    static let phosphor = Color(red: 0.45, green: 1.0, blue: 0.55)
-    static let phosphorDim = Color(red: 0.45, green: 1.0, blue: 0.55).opacity(0.65)
-    static let phosphorMuted = Color(red: 0.45, green: 1.0, blue: 0.55).opacity(0.3)
-    static let phosphorGlow = Color(red: 0.45, green: 1.0, blue: 0.55).opacity(0.5)
-    static let amber = Color(red: 1.0, green: 0.75, blue: 0.2)
-    static let danger = Color(red: 1.0, green: 0.3, blue: 0.35)
-    static let dangerDim = Color(red: 1.0, green: 0.3, blue: 0.35).opacity(0.7)
+    // Desaturated phosphor palette: accent stays bright, body text is off-white
+    // with a subtle green cast so long reading doesn't burn the eye.
+    static let background = Color(red: 0.025, green: 0.035, blue: 0.025)
+    static let surface = Color(red: 0.045, green: 0.06, blue: 0.045)
 
+    /// Body text — readable off-white with a faint green hint.
+    static let foreground = Color(red: 0.88, green: 0.94, blue: 0.88)
+
+    /// Accent color for headers, buttons, timer, banner.
+    static let phosphor = Color(red: 0.55, green: 1.0, blue: 0.65)
+    /// Secondary accent; used for section headers and decorative chrome.
+    static let phosphorDim = Color(red: 0.65, green: 0.92, blue: 0.7)
+    /// Muted comments / hints / tertiary labels.
+    static let phosphorMuted = Color(red: 0.45, green: 0.65, blue: 0.5)
+    /// Glow color for shadows around the accent.
+    static let phosphorGlow = Color(red: 0.55, green: 1.0, blue: 0.65).opacity(0.45)
+
+    static let amber = Color(red: 1.0, green: 0.78, blue: 0.3)
+    static let danger = Color(red: 1.0, green: 0.35, blue: 0.4)
+    static let dangerDim = Color(red: 1.0, green: 0.35, blue: 0.4).opacity(0.7)
+
+    /// Uses SF Mono on macOS via the system monospaced design — wider and
+    /// more open than Menlo, so body copy is easier to read at small sizes.
     static func mono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        Font.custom("Menlo", size: size).weight(weight)
+        Font.system(size: size, weight: weight, design: .monospaced)
     }
 
-    static let monoXS = mono(10)
-    static let monoSM = mono(11)
-    static let monoMD = mono(13)
-    static let monoLG = mono(16, weight: .bold)
+    static let monoXS = mono(11)
+    static let monoSM = mono(12)
+    static let monoMD = mono(14)
+    static let monoLG = mono(17, weight: .bold)
 }
 
 struct Scanlines: View {
     var body: some View {
-        GeometryReader { geo in
+        GeometryReader { _ in
             Canvas { ctx, size in
-                let lineHeight: CGFloat = 3
+                // Widen line pitch from 3px → 5px and lower opacity from 0.35 → 0.18
+                // so content behind the overlay stays readable.
+                let lineHeight: CGFloat = 5
                 var y: CGFloat = 0
                 while y < size.height {
                     let rect = CGRect(x: 0, y: y, width: size.width, height: 1)
-                    ctx.fill(Path(rect), with: .color(Color.black.opacity(0.35)))
+                    ctx.fill(Path(rect), with: .color(Color.black.opacity(0.18)))
                     y += lineHeight
                 }
             }
@@ -40,14 +55,14 @@ struct Scanlines: View {
 }
 
 struct CRTFlicker: View {
-    @State private var opacity: Double = 0.02
+    @State private var opacity: Double = 0.01
     var body: some View {
         Color.black
             .opacity(opacity)
             .allowsHitTesting(false)
             .onAppear {
-                withAnimation(.easeInOut(duration: 0.15).repeatForever(autoreverses: true)) {
-                    opacity = 0.06
+                withAnimation(.easeInOut(duration: 0.3).repeatForever(autoreverses: true)) {
+                    opacity = 0.03
                 }
             }
     }
