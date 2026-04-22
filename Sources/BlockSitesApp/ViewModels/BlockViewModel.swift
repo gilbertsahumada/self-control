@@ -116,6 +116,34 @@ class BlockViewModel: ObservableObject {
         }
     }
 
+    /// Polls `/etc/hosts` every `postExpiryPollInterval` for up to
+    /// `postExpiryGraceSeconds` after block expiry before surfacing the
+    /// stale-block banner. In the normal path the enforcer daemon cleans
+    /// up within 60s and the banner never appears.
+    private func startPostExpiryPolling() {
+        postExpiryPollTimer?.invalidate()
+        postExpiryDeadline = Date().addingTimeInterval(Self.postExpiryGraceSeconds)
+        isWaitingForDaemonCleanup = true
+        needsRecoveryCleanup = false
+
+        postExpiryPollTimer = Timer.scheduledTimer(withTimeInterval: Self.postExpiryPollInterval, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            if !self.detectStaleBlock() {
+                self.postExpiryPollTimer?.invalidate()
+                self.postExpiryPollTimer = nil
+                self.isWaitingForDaemonCleanup = false
+                self.needsRecoveryCleanup = false
+                return
+            }
+            if let deadline = self.postExpiryDeadline, Date() >= deadline {
+                self.postExpiryPollTimer?.invalidate()
+                self.postExpiryPollTimer = nil
+                self.isWaitingForDaemonCleanup = false
+                self.needsRecoveryCleanup = true
+            }
+        }
+    }
+
     /// Returns true if /etc/hosts still contains MonkMode markers without an active block.
     /// This indicates the enforcer daemon failed to clean up on expiry.
     private func detectStaleBlock() -> Bool {
