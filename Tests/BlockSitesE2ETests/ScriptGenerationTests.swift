@@ -1,5 +1,5 @@
 import XCTest
-@testable import SelfControlCore
+@testable import MonkModeCore
 
 final class ScriptGenerationTests: XCTestCase {
 
@@ -23,17 +23,17 @@ final class ScriptGenerationTests: XCTestCase {
 
     func testHostsEntriesHaveStartAndEndMarkers() {
         let entries = HostsGenerator.generateHostsEntries(for: ["example.com"])
-        XCTAssertTrue(entries.contains("# BLOCKSITES START"))
-        XCTAssertTrue(entries.contains("# BLOCKSITES END"))
+        XCTAssertTrue(entries.contains("# MONKMODE START"))
+        XCTAssertTrue(entries.contains("# MONKMODE END"))
     }
 
     func testCleanHostsContentRemovesAllMarkedLines() {
         let content = """
         127.0.0.1 localhost
-        # BLOCKSITES START
-        127.0.0.1 example.com # BLOCKSITES
-        127.0.0.1 www.example.com # BLOCKSITES
-        # BLOCKSITES END
+        # MONKMODE START
+        127.0.0.1 example.com # MONKMODE
+        127.0.0.1 www.example.com # MONKMODE
+        # MONKMODE END
         ::1 localhost
         """
         let cleaned = HostsGenerator.cleanHostsContent(content)
@@ -47,9 +47,9 @@ final class ScriptGenerationTests: XCTestCase {
         127.0.0.1 localhost
         ::1 localhost
         255.255.255.255 broadcasthost
-        # BLOCKSITES START
-        127.0.0.1 example.com # BLOCKSITES
-        # BLOCKSITES END
+        # MONKMODE START
+        127.0.0.1 example.com # MONKMODE
+        # MONKMODE END
         """
         let cleaned = HostsGenerator.cleanHostsContent(content)
         XCTAssertTrue(cleaned.contains("255.255.255.255 broadcasthost"))

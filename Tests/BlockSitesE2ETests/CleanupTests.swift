@@ -1,5 +1,5 @@
 import XCTest
-@testable import SelfControlCore
+@testable import MonkModeCore
 
 /// Tests that verify the full blocking → cleanup roundtrip works correctly.
 /// These tests reproduce the bugs found where cleanup was silently skipped,
@@ -23,16 +23,16 @@ final class CleanupTests: XCTestCase {
         let blockedHosts = originalHosts + blockEntries
 
         // Verify blocking content is present
-        XCTAssertTrue(blockedHosts.contains("BLOCKSITES"))
+        XCTAssertTrue(blockedHosts.contains("MONKMODE"))
         for site in popularSites {
             XCTAssertTrue(blockedHosts.contains(site), "Blocked hosts should contain \(site)")
         }
 
-        // Simulate cleanup: remove all BLOCKSITES entries
+        // Simulate cleanup: remove all MONKMODE entries
         let cleanedHosts = HostsGenerator.cleanHostsContent(blockedHosts)
 
         // Verify ALL blocking content is removed
-        XCTAssertFalse(cleanedHosts.contains("BLOCKSITES"), "Cleaned hosts should not contain BLOCKSITES marker")
+        XCTAssertFalse(cleanedHosts.contains("MONKMODE"), "Cleaned hosts should not contain MONKMODE marker")
         XCTAssertFalse(cleanedHosts.contains("127.0.0.1 x.com"), "Cleaned hosts should not block x.com")
         XCTAssertFalse(cleanedHosts.contains("127.0.0.1 twitter.com"), "Cleaned hosts should not block twitter.com")
         XCTAssertFalse(cleanedHosts.contains("127.0.0.1 instagram.com"), "Cleaned hosts should not block instagram.com")
@@ -92,16 +92,16 @@ final class CleanupTests: XCTestCase {
         // Simulate what the app does: append anchor lines
         let blockedPfConf = originalPfConf + """
 
-        # BlockSites anchor
-        anchor "com.blocksites"
-        load anchor "com.blocksites" from "/etc/pf.anchors/com.blocksites"
+        # MonkMode anchor
+        anchor "com.monkmode"
+        load anchor "com.monkmode" from "/etc/pf.anchors/com.monkmode"
         """
 
         let (cleaned, didChange) = PfConfCleaner.cleanPfConfContent(blockedPfConf)
 
         XCTAssertTrue(didChange, "Should detect changes were needed")
-        XCTAssertFalse(cleaned.contains("BlockSites"), "Should remove BlockSites comment")
-        XCTAssertFalse(cleaned.contains("com.blocksites"), "Should remove all blocksites references")
+        XCTAssertFalse(cleaned.contains("MonkMode"), "Should remove MonkMode comment")
+        XCTAssertFalse(cleaned.contains("com.monkmode"), "Should remove all monkmode references")
 
         // Apple anchors must be preserved
         XCTAssertTrue(cleaned.contains("com.apple"))
@@ -125,9 +125,9 @@ final class CleanupTests: XCTestCase {
     func testPfConfCleanupIdempotent() {
         let pfConf = """
         anchor "com.apple/*"
-        # BlockSites anchor
-        anchor "com.blocksites"
-        load anchor "com.blocksites" from "/etc/pf.anchors/com.blocksites"
+        # MonkMode anchor
+        anchor "com.monkmode"
+        load anchor "com.monkmode" from "/etc/pf.anchors/com.monkmode"
         """
 
         let (cleanedOnce, _) = PfConfCleaner.cleanPfConfContent(pfConf)
@@ -171,7 +171,7 @@ final class CleanupTests: XCTestCase {
         // Even if the hash matches what we saved, cleanup MUST still run
         let cleaned = HostsGenerator.cleanHostsContent(withBlocks)
 
-        XCTAssertFalse(cleaned.contains("BLOCKSITES"),
+        XCTAssertFalse(cleaned.contains("MONKMODE"),
                        "Cleanup must remove entries regardless of hash state")
         XCTAssertFalse(cleaned.contains("127.0.0.1 x.com"),
                        "x.com must be unblocked after cleanup")
@@ -212,14 +212,14 @@ final class CleanupTests: XCTestCase {
         // --- Block phase ---
         let hostsEntries = HostsGenerator.generateHostsEntries(for: sites)
         let blockedHosts = originalHosts + hostsEntries
-        let blockedPfConf = originalPfConf + "\n# BlockSites anchor\nanchor \"com.blocksites\"\nload anchor \"com.blocksites\" from \"/etc/pf.anchors/com.blocksites\"\n"
+        let blockedPfConf = originalPfConf + "\n# MonkMode anchor\nanchor \"com.monkmode\"\nload anchor \"com.monkmode\" from \"/etc/pf.anchors/com.monkmode\"\n"
 
         // Verify blocking is in effect
         for site in sites {
             XCTAssertTrue(blockedHosts.contains(site),
                           "Hosts should block \(site)", file: file, line: line)
         }
-        XCTAssertTrue(blockedPfConf.contains("com.blocksites"),
+        XCTAssertTrue(blockedPfConf.contains("com.monkmode"),
                       "pf.conf should have anchor", file: file, line: line)
 
         // --- Cleanup phase ---
@@ -227,9 +227,9 @@ final class CleanupTests: XCTestCase {
         let (cleanedPfConf, _) = PfConfCleaner.cleanPfConfContent(blockedPfConf)
 
         // Verify all blocking is removed
-        XCTAssertFalse(cleanedHosts.contains("BLOCKSITES"),
+        XCTAssertFalse(cleanedHosts.contains("MONKMODE"),
                        "Hosts cleanup incomplete", file: file, line: line)
-        XCTAssertFalse(cleanedPfConf.contains("blocksites"),
+        XCTAssertFalse(cleanedPfConf.contains("monkmode"),
                        "pf.conf cleanup incomplete", file: file, line: line)
 
         // Verify no expanded subdomain leaks
