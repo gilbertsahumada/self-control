@@ -188,7 +188,7 @@ struct SetupView: View {
             }
             Text("/etc/hosts still contains block entries from a previous lockdown that was not cleaned up. Sites may still be unreachable. Run cleanup to restore normal access.")
                 .font(Theme.monoSM)
-                .foregroundColor(Theme.phosphorDim)
+                .foregroundColor(Theme.foreground)
                 .fixedSize(horizontal: false, vertical: true)
             Button(action: { viewModel.runRecoveryCleanup() }) {
                 HStack(spacing: 6) {
