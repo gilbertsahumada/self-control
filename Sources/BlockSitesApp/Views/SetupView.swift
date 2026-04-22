@@ -1,15 +1,15 @@
 import SwiftUI
-import SelfControlCore
+import MonkModeCore
 
 struct SetupView: View {
     @EnvironmentObject var viewModel: BlockViewModel
 
     private let banner = """
- ███████ ███████ ██      ███████  ██████ ████████ ██████  ██
- ██      ██      ██      ██      ██         ██    ██   ██ ██
- ███████ █████   ██      █████   ██         ██    ██████  ██
-      ██ ██      ██      ██      ██         ██    ██   ██ ██
- ███████ ███████ ███████ ██       ██████    ██    ██   ██ ███████
+ ███   ███  ██████  ███    ██ ██   ██ ███   ███  ██████  ██████  ███████
+ ████ ████ ██    ██ ████   ██ ██  ██  ████ ████ ██    ██ ██   ██ ██
+ ██ ███ ██ ██    ██ ██ ██  ██ █████   ██ ███ ██ ██    ██ ██   ██ █████
+ ██  █  ██ ██    ██ ██  ██ ██ ██  ██  ██  █  ██ ██    ██ ██   ██ ██
+ ██     ██  ██████  ██   ████ ██   ██ ██     ██  ██████  ██████  ███████
 """
 
     var body: some View {
@@ -19,6 +19,10 @@ struct SetupView: View {
                     bannerBlock
                     promptLine
                     Divider().background(Theme.phosphorMuted)
+
+                    if viewModel.needsRecoveryCleanup {
+                        recoveryBanner
+                    }
 
                     section("TARGETS") {
                         LazyVGrid(columns: [
@@ -106,12 +110,47 @@ struct SetupView: View {
             .fixedSize(horizontal: true, vertical: true)
     }
 
+    private var recoveryBanner: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Text("!!")
+                    .font(Theme.monoSM.weight(.bold))
+                    .foregroundColor(Theme.amber)
+                Text("STALE LOCKDOWN DETECTED")
+                    .font(Theme.monoSM.weight(.bold))
+                    .foregroundColor(Theme.amber)
+                Spacer()
+            }
+            Text("/etc/hosts still contains block entries from a previous lockdown that was not cleaned up. Sites may still be unreachable. Run cleanup to restore normal access.")
+                .font(Theme.monoSM)
+                .foregroundColor(Theme.phosphorDim)
+                .fixedSize(horizontal: false, vertical: true)
+            Button(action: { viewModel.runRecoveryCleanup() }) {
+                HStack(spacing: 6) {
+                    Text(">>")
+                    Text("RUN_CLEANUP.sh")
+                    Text("<<")
+                }
+                .font(Theme.monoSM.weight(.bold))
+                .foregroundColor(Theme.background)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(Theme.amber)
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isProcessing)
+        }
+        .padding(12)
+        .background(Theme.surface)
+        .overlay(Rectangle().stroke(Theme.amber, lineWidth: 1))
+    }
+
     private var promptLine: some View {
         HStack(spacing: 6) {
             Text("user@local:~$")
                 .font(Theme.monoSM)
                 .foregroundColor(Theme.phosphorDim)
-            Text("selfcontrol --init")
+            Text("monkmode --init")
                 .font(Theme.monoSM)
                 .foregroundColor(Theme.phosphor)
             Spacer()
