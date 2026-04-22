@@ -1,11 +1,11 @@
 import Foundation
-import SelfControlCore
+import MonkModeCore
 
 class FirewallManager {
     static let shared = FirewallManager()
 
-    private let pfRulesPath = "/etc/pf.anchors/com.blocksites"
-    private let ipCachePath = "/Library/Application Support/BlockSites/ip_cache.json"
+    private let pfRulesPath = MonkModeConstants.pfAnchorPath
+    private let ipCachePath = MonkModeConstants.ipCachePath
 
     struct IPCache: Codable {
         var ips: [String: [String]]
@@ -22,7 +22,7 @@ class FirewallManager {
         }
 
         // Recreate rules from cache
-        var rules = "# BlockSites firewall rules\n"
+        var rules = "# MonkMode firewall rules\n"
 
         // Per-IP rules
         for (_, ips) in cache.ips {
@@ -77,7 +77,7 @@ class FirewallManager {
     }
 
     private func removePfAnchor() {
-        let pfConfPath = "/etc/pf.conf"
+        let pfConfPath = MonkModeConstants.pfConfPath
         guard let pfConf = try? String(contentsOfFile: pfConfPath, encoding: .utf8) else {
             log("Error: could not read \(pfConfPath)")
             return
@@ -100,7 +100,7 @@ class FirewallManager {
     }
 
     private func log(_ message: String) {
-        let logPath = "/Library/Application Support/BlockSites/enforcer.log"
+        let logPath = MonkModeConstants.enforcerLogPath
         let timestamp = ISO8601DateFormatter().string(from: Date())
         let entry = "[\(timestamp)] \(message)\n"
         if let handle = FileHandle(forWritingAtPath: logPath) {

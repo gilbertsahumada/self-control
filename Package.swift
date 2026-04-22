@@ -2,37 +2,37 @@
 import PackageDescription
 
 let package = Package(
-    name: "SelfControl",
+    name: "MonkMode",
     platforms: [
         .macOS(.v13)
     ],
     targets: [
         .target(
-            name: "SelfControlCore",
+            name: "MonkModeCore",
             path: "Sources/BlockSitesCore"
         ),
         .executableTarget(
-            name: "SelfControl",
+            name: "MonkMode",
             dependencies: [
-                "SelfControlCore"
+                "MonkModeCore"
             ],
             path: "Sources/BlockSitesApp"
         ),
         .executableTarget(
-            name: "SelfControlEnforcer",
+            name: "MonkModeEnforcer",
             dependencies: [
-                "SelfControlCore"
+                "MonkModeCore"
             ],
             path: "Sources/BlockSitesEnforcer"
         ),
         .testTarget(
-            name: "SelfControlCoreTests",
-            dependencies: ["SelfControlCore"],
+            name: "MonkModeCoreTests",
+            dependencies: ["MonkModeCore"],
             path: "Tests/BlockSitesCoreTests"
         ),
         .testTarget(
-            name: "SelfControlE2ETests",
-            dependencies: ["SelfControlCore"],
+            name: "MonkModeE2ETests",
+            dependencies: ["MonkModeCore"],
             path: "Tests/BlockSitesE2ETests"
         )
     ]

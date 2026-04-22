@@ -1,9 +1,9 @@
 import Foundation
 
 public enum PfConfCleaner {
-    private static let anchorComment = "# BlockSites anchor"
-    private static let anchorDeclaration = "anchor \"com.blocksites\""
-    private static let anchorLoad = "load anchor \"com.blocksites\""
+    private static let anchorComment = "# MonkMode anchor"
+    private static let anchorDeclaration = "anchor \"com.monkmode\""
+    private static let anchorLoad = "load anchor \"com.monkmode\""
 
     /// Generates the pf.conf anchor lines that should be appended during blocking.
     public static func generateAnchorLines() -> String {
@@ -11,12 +11,12 @@ public enum PfConfCleaner {
 
         \(anchorComment)
         \(anchorDeclaration)
-        \(anchorLoad) from "/etc/pf.anchors/com.blocksites"
+        \(anchorLoad) from "/etc/pf.anchors/com.monkmode"
 
         """
     }
 
-    /// Removes all BlockSites anchor references from pf.conf content.
+    /// Removes all MonkMode anchor references from pf.conf content.
     /// Returns the cleaned content, or nil if no changes were needed.
     public static func cleanPfConfContent(_ content: String) -> (cleaned: String, didChange: Bool) {
         let lines = content.components(separatedBy: .newlines)
