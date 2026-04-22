@@ -22,8 +22,18 @@ class BlockViewModel: ObservableObject {
     @Published var isProcessing: Bool = false
     @Published var errorMessage: String?
     @Published var needsRecoveryCleanup: Bool = false
+    @Published var isWaitingForDaemonCleanup: Bool = false
+
+    /// Seconds after timer expiry during which we suppress the stale-block
+    /// banner while polling to give the LaunchDaemon time to run cleanup.
+    /// The primary enforcer daemon runs every 60s so 90s gives a full cycle
+    /// plus launchd wake-up slack.
+    static let postExpiryGraceSeconds: TimeInterval = 90
+    static let postExpiryPollInterval: TimeInterval = 10
 
     private var timer: Timer?
+    private var postExpiryPollTimer: Timer?
+    private var postExpiryDeadline: Date?
 
     init() {
         checkExistingBlock()
