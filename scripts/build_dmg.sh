@@ -3,14 +3,14 @@ set -e
 
 APP_VERSION="${VERSION:-1.0.0}"
 
-echo "Building SelfControl v${APP_VERSION}..."
+echo "Building MonkMode v${APP_VERSION}..."
 
 # Build release
 echo "Building release binaries..."
 swift build -c release
 
 # Create .app bundle structure
-APP_NAME="SelfControl.app"
+APP_NAME="MonkMode.app"
 CONTENTS_PATH="dist/$APP_NAME/Contents"
 MACOS_PATH="$CONTENTS_PATH/MacOS"
 RESOURCES_PATH="$CONTENTS_PATH/Resources"
@@ -21,8 +21,8 @@ mkdir -p "$MACOS_PATH"
 mkdir -p "$RESOURCES_PATH"
 
 # Copy executables
-cp ".build/release/SelfControl" "$MACOS_PATH/"
-cp ".build/release/SelfControlEnforcer" "$MACOS_PATH/"
+cp ".build/release/MonkMode" "$MACOS_PATH/"
+cp ".build/release/MonkModeEnforcer" "$MACOS_PATH/"
 
 # Copy app icon if it exists
 if [ -f "assets/AppIcon.icns" ]; then
@@ -39,15 +39,15 @@ cat > "$CONTENTS_PATH/Info.plist" << EOF
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>SelfControl</string>
+    <string>MonkMode</string>
     <key>CFBundleIdentifier</key>
-    <string>com.selfcontrol.app</string>
+    <string>com.monkmode.app</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>SelfControl</string>
+    <string>MonkMode</string>
     <key>CFBundleDisplayName</key>
-    <string>SelfControl</string>
+    <string>MonkMode</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -68,8 +68,8 @@ EOF
 
 # Ad-hoc code sign the executables and app bundle
 echo "Code signing (ad-hoc)..."
-codesign --force --sign - "$MACOS_PATH/SelfControlEnforcer"
-codesign --force --sign - "$MACOS_PATH/SelfControl"
+codesign --force --sign - "$MACOS_PATH/MonkModeEnforcer"
+codesign --force --sign - "$MACOS_PATH/MonkMode"
 codesign --force --sign - "dist/$APP_NAME"
 
 echo "Verifying code signature..."
@@ -81,15 +81,15 @@ echo "App bundle created at dist/$APP_NAME"
 echo "Creating DMG..."
 STAGING_DIR=$(mktemp -d)
 cp -R "dist/$APP_NAME" "$STAGING_DIR/"
-hdiutil create -volname "SelfControl" -srcfolder "$STAGING_DIR" -ov -format UDZO "dist/SelfControl-${APP_VERSION}.dmg"
+hdiutil create -volname "MonkMode" -srcfolder "$STAGING_DIR" -ov -format UDZO "dist/MonkMode-${APP_VERSION}.dmg"
 rm -rf "$STAGING_DIR"
 
-echo "DMG created at dist/SelfControl-${APP_VERSION}.dmg"
+echo "DMG created at dist/MonkMode-${APP_VERSION}.dmg"
 echo ""
 echo "Distribution ready:"
-echo "   - dist/SelfControl.app"
-echo "   - dist/SelfControl-${APP_VERSION}.dmg"
+echo "   - dist/MonkMode.app"
+echo "   - dist/MonkMode-${APP_VERSION}.dmg"
 echo ""
 echo "NOTE: This app is ad-hoc signed. Users downloading from the internet"
 echo "will need to remove the quarantine attribute before opening:"
-echo "   xattr -cr /path/to/SelfControl.app"
+echo "   xattr -cr /path/to/MonkMode.app"

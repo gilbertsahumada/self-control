@@ -5,17 +5,17 @@ build:
 	swift build
 
 run: build
-	.build/debug/SelfControl
+	.build/debug/MonkMode
 
 # Production
 release:
 	swift build -c release
 
 install: release
-	sudo cp .build/release/SelfControl /usr/local/bin/selfcontrol
-	sudo cp .build/release/SelfControlEnforcer /usr/local/bin/selfcontrol-enforcer
-	sudo chmod +x /usr/local/bin/selfcontrol
-	sudo chmod +x /usr/local/bin/selfcontrol-enforcer
+	sudo cp .build/release/MonkMode /usr/local/bin/monkmode
+	sudo cp .build/release/MonkModeEnforcer /usr/local/bin/monkmode-enforcer
+	sudo chmod +x /usr/local/bin/monkmode
+	sudo chmod +x /usr/local/bin/monkmode-enforcer
 
 dmg:
 	./scripts/build_dmg.sh
