@@ -1,19 +1,26 @@
 import Foundation
-import SelfControlCore
-
-let configPath = "/Library/Application Support/BlockSites/config.json"
-let hostsPath = "/etc/hosts"
-let marker = "# BLOCKSITES"
-let stateFilePath = "/Library/Application Support/BlockSites/enforcer_state.json"
+import MonkModeCore
 
 struct EnforcerState: Codable {
     var lastHostsHash: Int
     var firstRunDone: Bool
 }
 
+func enforcerLog(_ message: String) {
+    let timestamp = ISO8601DateFormatter().string(from: Date())
+    let entry = "[\(timestamp)] \(message)\n"
+    if let handle = FileHandle(forWritingAtPath: MonkModeConstants.enforcerLogPath) {
+        handle.seekToEndOfFile()
+        handle.write(entry.data(using: .utf8) ?? Data())
+        handle.closeFile()
+    } else if let data = entry.data(using: .utf8) {
+        try? data.write(to: URL(fileURLWithPath: MonkModeConstants.enforcerLogPath))
+    }
+}
+
 func loadConfiguration() -> BlockConfiguration? {
-    guard FileManager.default.fileExists(atPath: configPath),
-          let data = try? Data(contentsOf: URL(fileURLWithPath: configPath)),
+    guard FileManager.default.fileExists(atPath: MonkModeConstants.configFilePath),
+          let data = try? Data(contentsOf: URL(fileURLWithPath: MonkModeConstants.configFilePath)),
           let config = try? JSONDecoder().decode(BlockConfiguration.self, from: data) else {
         return nil
     }
@@ -21,16 +28,20 @@ func loadConfiguration() -> BlockConfiguration? {
 }
 
 func loadState() -> EnforcerState {
-    guard let data = try? Data(contentsOf: URL(fileURLWithPath: stateFilePath)),
-          let state = try? JSONDecoder().decode(EnforcerState.self, from: data) else {
+    guard FileManager.default.fileExists(atPath: MonkModeConstants.stateFilePath) else {
         return EnforcerState(lastHostsHash: 0, firstRunDone: false)
+    }
+    guard let data = try? Data(contentsOf: URL(fileURLWithPath: MonkModeConstants.stateFilePath)),
+          let state = try? JSONDecoder().decode(EnforcerState.self, from: data) else {
+        enforcerLog("State file corrupt — resetting but preserving firstRunDone=true to avoid redundant DNS flush")
+        return EnforcerState(lastHostsHash: 0, firstRunDone: true)
     }
     return state
 }
 
 func saveState(_ state: EnforcerState) {
     if let data = try? JSONEncoder().encode(state) {
-        try? data.write(to: URL(fileURLWithPath: stateFilePath))
+        try? data.write(to: URL(fileURLWithPath: MonkModeConstants.stateFilePath))
     }
 }
 
@@ -41,19 +52,20 @@ func computeHostsHash(_ content: String) -> Int {
 }
 
 func applyBlocks(_ sites: [String], forceDNSFlush: Bool) {
-    guard var hostsContent = try? String(contentsOfFile: hostsPath, encoding: .utf8) else {
+    guard var hostsContent = try? String(contentsOfFile: MonkModeConstants.hostsPath, encoding: .utf8) else {
+        enforcerLog("Error: could not read \(MonkModeConstants.hostsPath)")
         return
     }
 
     let currentHash = computeHostsHash(hostsContent)
     let state = loadState()
 
-    hostsContent = HostsGenerator.cleanHostsContent(hostsContent, marker: marker)
-    let newContent = hostsContent + HostsGenerator.generateHostsEntries(for: sites, marker: marker)
+    hostsContent = HostsGenerator.cleanHostsContent(hostsContent, marker: MonkModeConstants.marker)
+    let newContent = hostsContent + HostsGenerator.generateHostsEntries(for: sites, marker: MonkModeConstants.marker)
     let newHash = computeHostsHash(newContent)
 
     if currentHash != newHash || forceDNSFlush {
-        try? newContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
+        try? newContent.write(toFile: MonkModeConstants.hostsPath, atomically: true, encoding: .utf8)
 
         if forceDNSFlush {
             runCommand("/usr/bin/dscacheutil", args: ["-flushcache"])
@@ -70,31 +82,37 @@ func applyBlocks(_ sites: [String], forceDNSFlush: Bool) {
 }
 
 func removeBlocks() {
-    // Always clean hosts file — remove all BLOCKSITES entries
-    if let hostsContent = try? String(contentsOfFile: hostsPath, encoding: .utf8) {
-        let cleanedContent = HostsGenerator.cleanHostsContent(hostsContent, marker: marker)
+    enforcerLog("removeBlocks() invoked — timer expired or forced cleanup")
+
+    if let hostsContent = try? String(contentsOfFile: MonkModeConstants.hostsPath, encoding: .utf8) {
+        let cleanedContent = HostsGenerator.cleanHostsContent(hostsContent, marker: MonkModeConstants.marker)
         if cleanedContent != hostsContent {
-            try? cleanedContent.write(toFile: hostsPath, atomically: true, encoding: .utf8)
+            try? cleanedContent.write(toFile: MonkModeConstants.hostsPath, atomically: true, encoding: .utf8)
+            enforcerLog("Hosts file cleaned")
         }
     }
 
-    // Always flush DNS cache on block expiry
     runCommand("/usr/bin/dscacheutil", args: ["-flushcache"])
     runCommand("/usr/bin/killall", args: ["-HUP", "mDNSResponder"])
 
-    // Remove firewall rules and clean pf.conf
     FirewallManager.shared.removeFirewallRules()
 
-    // Clean up app data files
-    try? FileManager.default.removeItem(atPath: configPath)
-    try? FileManager.default.removeItem(atPath: "/Library/Application Support/BlockSites/ip_cache.json")
-    try? FileManager.default.removeItem(atPath: "/Library/Application Support/BlockSites/hosts.backup")
-    try? FileManager.default.removeItem(atPath: stateFilePath)
+    try? FileManager.default.removeItem(atPath: MonkModeConstants.configFilePath)
+    try? FileManager.default.removeItem(atPath: MonkModeConstants.ipCachePath)
+    try? FileManager.default.removeItem(atPath: MonkModeConstants.hostsBackupPath)
+    try? FileManager.default.removeItem(atPath: MonkModeConstants.stateFilePath)
 
-    // Unload and remove daemon plist — must be last since it stops this process
-    let plistPath = "/Library/LaunchDaemons/com.blocksites.enforcer.plist"
-    runCommand("/bin/launchctl", args: ["unload", "-w", plistPath])
-    try? FileManager.default.removeItem(atPath: plistPath)
+    let cleanupPlistPath = MonkModeConstants.cleanupDaemonPlistPath
+    if FileManager.default.fileExists(atPath: cleanupPlistPath) {
+        runCommand("/bin/launchctl", args: ["unload", "-w", cleanupPlistPath])
+        try? FileManager.default.removeItem(atPath: cleanupPlistPath)
+    }
+
+    let enforcerPlistPath = MonkModeConstants.enforcerDaemonPlistPath
+    runCommand("/bin/launchctl", args: ["unload", "-w", enforcerPlistPath])
+    try? FileManager.default.removeItem(atPath: enforcerPlistPath)
+
+    enforcerLog("Cleanup complete")
 }
 
 guard let config = loadConfiguration() else {

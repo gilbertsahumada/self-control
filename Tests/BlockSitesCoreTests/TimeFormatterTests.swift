@@ -1,5 +1,5 @@
 import XCTest
-@testable import SelfControlCore
+@testable import MonkModeCore
 
 final class TimeFormatterTests: XCTestCase {
 

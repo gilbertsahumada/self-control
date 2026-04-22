@@ -4,13 +4,23 @@ struct ContentView: View {
     @EnvironmentObject var viewModel: BlockViewModel
 
     var body: some View {
-        Group {
-            if viewModel.isBlocking {
-                ActiveBlockView()
-            } else {
-                SetupView()
+        ZStack {
+            Theme.background.ignoresSafeArea()
+
+            Group {
+                if viewModel.isBlocking {
+                    ActiveBlockView()
+                } else {
+                    SetupView()
+                }
             }
+
+            Scanlines()
+                .ignoresSafeArea()
+            CRTFlicker()
+                .ignoresSafeArea()
         }
-        .frame(minWidth: 440, minHeight: 520)
+        .frame(minWidth: 560, minHeight: 640)
+        .preferredColorScheme(.dark)
     }
 }
