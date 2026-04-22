@@ -245,10 +245,10 @@ class BlockViewModel: ObservableObject {
                 self.remainingSeconds = 0
                 self.selectedSites = []
                 self.customSitesText = ""
-                // Give daemons a few seconds to run their cleanup, then verify.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
-                    self?.checkExistingBlock()
-                }
+                // Poll the hosts file for up to `postExpiryGraceSeconds` so the
+                // LaunchDaemon has time to run cleanup before we surface the
+                // stale-block banner. Normal path: banner never appears.
+                self.startPostExpiryPolling()
             } else {
                 self.remainingSeconds = remaining
                 if remaining <= 60 && interval != 1 {
