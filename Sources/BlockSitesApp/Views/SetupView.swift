@@ -38,21 +38,7 @@ struct SetupView: View {
                     }
 
                     section("CUSTOM DOMAINS") {
-                        HStack(spacing: 6) {
-                            Text(">")
-                                .font(Theme.monoMD)
-                                .foregroundColor(Theme.phosphorDim)
-                            TextField("", text: $viewModel.customSitesText,
-                                      prompt: Text("example.com,another.com")
-                                        .foregroundColor(Theme.phosphorMuted))
-                                .textFieldStyle(.plain)
-                                .font(Theme.monoMD)
-                                .foregroundColor(Theme.phosphor)
-                                .tint(Theme.phosphor)
-                        }
-                        .padding(10)
-                        .background(Theme.surface)
-                        .overlay(Rectangle().stroke(Theme.phosphorMuted, lineWidth: 1))
+                        customDomainsBlock
                     }
 
                     section("DURATION") {
@@ -128,6 +114,65 @@ struct SetupView: View {
         .padding(10)
         .background(Theme.surface)
         .overlay(Rectangle().stroke(Theme.phosphorMuted, lineWidth: 1))
+    }
+
+    private var customDomainsBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Text("$")
+                    .font(Theme.monoMD)
+                    .foregroundColor(Theme.phosphorDim)
+                TextField(
+                    "",
+                    text: $viewModel.pendingDomainInput,
+                    prompt: Text("type domain + enter (e.g. reddit.com)")
+                        .foregroundColor(Theme.phosphorMuted)
+                )
+                .textFieldStyle(.plain)
+                .font(Theme.monoMD)
+                .foregroundColor(Theme.phosphor)
+                .tint(Theme.phosphor)
+                .onSubmit {
+                    viewModel.commitPendingDomain()
+                }
+                Button(action: { viewModel.commitPendingDomain() }) {
+                    Text("ADD")
+                        .font(Theme.monoSM.weight(.bold))
+                        .foregroundColor(Theme.background)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(
+                            viewModel.pendingDomainInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                ? Theme.phosphorMuted : Theme.phosphor
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(viewModel.pendingDomainInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(10)
+            .background(Theme.surface)
+            .overlay(Rectangle().stroke(Theme.phosphorMuted, lineWidth: 1))
+
+            if let err = viewModel.pendingDomainError {
+                Text("!! \(err)")
+                    .font(Theme.monoSM)
+                    .foregroundColor(Theme.amber)
+            }
+
+            if !viewModel.customDomains.isEmpty {
+                FlowLayout(spacing: 6, runSpacing: 6) {
+                    ForEach(viewModel.customDomains, id: \.self) { domain in
+                        DomainChip(domain: domain) {
+                            viewModel.removeCustomDomain(domain)
+                        }
+                    }
+                }
+            } else {
+                Text("// no custom domains added")
+                    .font(Theme.monoXS)
+                    .foregroundColor(Theme.phosphorMuted)
+            }
+        }
     }
 
     private var recoveryBanner: some View {
