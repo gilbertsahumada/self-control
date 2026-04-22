@@ -3,15 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --background: 120 12% 4%;
-  --surface: 120 10% 7%;
-  --foreground: 110 18% 90%;
-  --phosphor: 130 85% 70%;
-  --phosphor-dim: 130 40% 72%;
-  --phosphor-muted: 130 18% 50%;
-  --amber: 38 95% 60%;
-  --danger: 355 85% 65%;
-  --border: 130 15% 22%;
+  --background: 120 10% 5%;
+  --surface: 120 8% 8%;
+  --foreground: 110 15% 90%;
+  --phosphor: 130 45% 68%;
+  --phosphor-dim: 130 25% 72%;
+  --phosphor-muted: 130 12% 50%;
+  --amber: 38 75% 62%;
+  --danger: 355 55% 62%;
+  --border: 130 12% 22%;
 }
 
 * {

@@ -93,7 +93,6 @@ struct SetupView: View {
                     endPoint: .bottom
                 )
             )
-            .shadow(color: Theme.phosphorGlow, radius: 3)
             .lineSpacing(-2)
             .fixedSize(horizontal: true, vertical: true)
     }

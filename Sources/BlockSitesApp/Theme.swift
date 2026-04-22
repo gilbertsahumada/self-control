@@ -9,14 +9,15 @@ enum Theme {
     /// Body text — readable off-white with a faint green hint.
     static let foreground = Color(red: 0.88, green: 0.94, blue: 0.88)
 
-    /// Accent color for headers, buttons, timer, banner.
-    static let phosphor = Color(red: 0.55, green: 1.0, blue: 0.65)
+    /// Accent color for headers, buttons, timer, banner. Desaturated to
+    /// avoid the neon glare of saturated green on a dark background.
+    static let phosphor = Color(red: 0.6, green: 0.9, blue: 0.68)
     /// Secondary accent; used for section headers and decorative chrome.
-    static let phosphorDim = Color(red: 0.65, green: 0.92, blue: 0.7)
+    static let phosphorDim = Color(red: 0.65, green: 0.85, blue: 0.72)
     /// Muted comments / hints / tertiary labels.
-    static let phosphorMuted = Color(red: 0.45, green: 0.65, blue: 0.5)
-    /// Glow color for shadows around the accent.
-    static let phosphorGlow = Color(red: 0.55, green: 1.0, blue: 0.65).opacity(0.45)
+    static let phosphorMuted = Color(red: 0.5, green: 0.65, blue: 0.55)
+    /// Kept for API compatibility but effectively off; glows removed.
+    static let phosphorGlow = Color.clear
 
     static let amber = Color(red: 1.0, green: 0.78, blue: 0.3)
     static let danger = Color(red: 1.0, green: 0.35, blue: 0.4)

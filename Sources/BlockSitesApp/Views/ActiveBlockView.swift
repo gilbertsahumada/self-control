@@ -30,7 +30,6 @@ struct ActiveBlockView: View {
                                 endPoint: .bottom
                             )
                         )
-                        .shadow(color: Theme.danger.opacity(0.6), radius: 3)
                         .lineSpacing(-2)
                         .fixedSize(horizontal: true, vertical: true)
 
@@ -55,8 +54,6 @@ struct ActiveBlockView: View {
                         Text(formatCountdown(viewModel.remainingSeconds))
                             .font(Theme.mono(68, weight: .bold))
                             .foregroundColor(Theme.phosphor)
-                            .shadow(color: Theme.phosphorGlow, radius: 10)
-                            .shadow(color: Theme.phosphorGlow, radius: 4)
                             .minimumScaleFactor(0.5)
                             .lineLimit(1)
                             .frame(maxWidth: .infinity)
@@ -126,7 +123,6 @@ struct ActiveBlockView: View {
             Text(str)
                 .font(Theme.mono(14, weight: .bold))
                 .foregroundColor(Theme.phosphor)
-                .shadow(color: Theme.phosphorGlow, radius: 3)
                 .lineLimit(1)
         }
         .frame(height: 20)
@@ -176,7 +172,6 @@ struct BlinkDot: View {
     var body: some View {
         Text("●")
             .foregroundColor(Theme.danger)
-            .shadow(color: Theme.danger.opacity(0.8), radius: 4)
             .opacity(on ? 1 : 0.3)
             .onAppear {
                 withAnimation(.easeInOut(duration: 0.7).repeatForever()) {
