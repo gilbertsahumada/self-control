@@ -22,7 +22,7 @@ export default {
         border: 'hsl(var(--border))',
       },
       fontFamily: {
-        mono: ['Menlo', 'Monaco', 'Courier New', 'monospace'],
+        mono: ['"JetBrains Mono"', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
       },
       borderRadius: {
         none: '0',
