@@ -6,28 +6,47 @@ export default {
     extend: {
       colors: {
         background: 'hsl(var(--background))',
+        surface: 'hsl(var(--surface))',
         foreground: 'hsl(var(--foreground))',
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
+        phosphor: {
+          DEFAULT: 'hsl(var(--phosphor))',
+          dim: 'hsl(var(--phosphor-dim))',
+          muted: 'hsl(var(--phosphor-muted))',
         },
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
+        amber: {
+          DEFAULT: 'hsl(var(--amber))',
         },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
+        danger: {
+          DEFAULT: 'hsl(var(--danger))',
         },
         border: 'hsl(var(--border))',
       },
+      fontFamily: {
+        mono: ['Menlo', 'Monaco', 'Courier New', 'monospace'],
+      },
       borderRadius: {
-        lg: '0.75rem',
-        md: '0.5rem',
-        sm: '0.375rem',
+        none: '0',
+        sm: '0',
+        md: '0',
+        lg: '0',
       },
       boxShadow: {
-        glow: '0 0 40px rgba(99, 102, 241, 0.25)',
+        phosphor: '0 0 20px rgba(115, 255, 140, 0.35)',
+        phosphorSoft: '0 0 8px rgba(115, 255, 140, 0.2)',
+      },
+      keyframes: {
+        'crt-flicker': {
+          '0%, 100%': { opacity: '0.02' },
+          '50%': { opacity: '0.08' },
+        },
+        blink: {
+          '0%, 49%': { opacity: '1' },
+          '50%, 100%': { opacity: '0' },
+        },
+      },
+      animation: {
+        'crt-flicker': 'crt-flicker 0.3s ease-in-out infinite',
+        blink: 'blink 1.1s step-end infinite',
       },
     },
   },
