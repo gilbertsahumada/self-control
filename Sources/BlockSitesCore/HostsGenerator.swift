@@ -1,21 +1,26 @@
 import Foundation
 
 public enum HostsGenerator {
-    /// Generates hosts file entries for the given sites, marked with the specified marker.
-    /// Also includes DNS-over-HTTPS provider domains to force browsers to use system DNS.
+    /// Generates hosts file entries for the given sites, marked with the
+    /// specified marker. Writes both an IPv4 (`127.0.0.1`) and an IPv6
+    /// (`::1`) mapping for every domain so browsers asking for an AAAA
+    /// record cannot bypass the block via IPv6.
+    ///
+    /// Also adds DNS-over-HTTPS provider domains so browsers are forced to
+    /// use the system resolver, which honours `/etc/hosts`.
     public static func generateHostsEntries(for sites: [String], marker: String = "# MONKMODE") -> String {
         var blockEntries = "\n\(marker) START\n"
         for site in sites {
             let domains = DomainExpander.expandDomains(for: site)
             for domain in domains {
                 blockEntries += "127.0.0.1 \(domain) \(marker)\n"
+                blockEntries += "::1 \(domain) \(marker)\n"
             }
         }
 
-        // Block DNS-over-HTTPS providers to force browsers to use system DNS
-        // (which respects /etc/hosts entries)
         for domain in DomainExpander.dohDomains {
             blockEntries += "127.0.0.1 \(domain) \(marker)\n"
+            blockEntries += "::1 \(domain) \(marker)\n"
         }
 
         blockEntries += "\(marker) END\n"

@@ -286,16 +286,9 @@ class BlockViewModel: ObservableObject {
     private func startCountdownTimer() {
         timer?.invalidate()
 
-        let interval: TimeInterval
-        if remainingSeconds <= 60 {
-            interval = 1
-        } else if remainingSeconds <= 3600 {
-            interval = 10
-        } else {
-            interval = 60
-        }
-
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        // Always tick at 1s so the displayed HH:MM:SS counts down smoothly.
+        // CPU cost is negligible — a single timer firing once per second.
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self = self, let config = self.config else { return }
             let remaining = config.endTime.timeIntervalSince(Date())
             if remaining <= 0 {
@@ -314,11 +307,6 @@ class BlockViewModel: ObservableObject {
                 self.startPostExpiryPolling()
             } else {
                 self.remainingSeconds = remaining
-                if remaining <= 60 && interval != 1 {
-                    self.startCountdownTimer()
-                } else if remaining <= 3600 && interval > 10 {
-                    self.startCountdownTimer()
-                }
             }
         }
     }
