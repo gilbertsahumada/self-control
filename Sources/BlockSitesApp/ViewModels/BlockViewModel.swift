@@ -451,7 +451,11 @@ class BlockViewModel: ObservableObject {
         #!/bin/bash
         set -e
         mkdir -p \(supportDir)
+        chown root:wheel \(supportDir)
+        chmod 0755 \(supportDir)
         LOG=\(installLog)
+        touch "$LOG"
+        chmod 0640 "$LOG"
         exec > >(tee -a "$LOG") 2>&1
         echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] install: starting"
         trap 'ec=$?; echo "[$(date -u '\"'\"'+%Y-%m-%dT%H:%M:%SZ'\"'\"')] install: exit=$ec"; exit $ec' EXIT
@@ -465,6 +469,7 @@ class BlockViewModel: ObservableObject {
         cp \(tempEnforcerPlistQ) \(enforcerDaemonPath)
         cp \(tempCleanupPlistQ) \(cleanupDaemonPath)
         cp \(hostsPath) \(supportHostsBackup)
+        chown root:wheel \(supportConfig) \(supportIPCache) \(supportHostsBackup)
         chmod 0600 \(supportConfig) \(supportIPCache) \(supportHostsBackup)
         sed -i '' '/\(marker)/d' \(hostsPath)
         cat \(tempHostsEntriesQ) >> \(hostsPath)
