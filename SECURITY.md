@@ -71,6 +71,26 @@ After a fix ships in a signed, notarized release we publish the advisory on
 the repository's Security tab with a CVE when appropriate. Reporters are
 credited unless they request otherwise.
 
+## Logging and data
+
+MonkMode writes three files under `/Library/Application Support/MonkMode/`:
+
+| File | Mode | Content | Redaction |
+|------|------|---------|-----------|
+| `config.json` | 0644 (root-owned, world-readable) | start/end time, blocked sites | No — block list is chosen by the user |
+| `ip_cache.json` | 0644 | resolved IPs per blocked domain | No — public DNS data |
+| `hosts.backup` | 0600 (root-only) | snapshot of `/etc/hosts` before the block | Not accessible to other users |
+| `install.log` | 0640 | timing + exit codes of the privileged install | No domain names |
+| `enforcer.log` | 0644 | actions taken by the 60 s daemon | Domain-shaped tokens replaced with `<domain>`; rotates at 1 MB |
+
+The enforcer never sends anything off the machine. No telemetry, no
+crash reporting, no remote update beacon. If a future release needs any
+network activity beyond the one-time DoH-blocklist refresh (#26), it
+will be documented here and gated behind an opt-in.
+
+Run the enforcer with `MONKMODE_LOG_VERBOSE=1` in its environment to
+disable redaction when debugging.
+
 ## Out of scope
 
 The following are documented trade-offs, not vulnerabilities:
