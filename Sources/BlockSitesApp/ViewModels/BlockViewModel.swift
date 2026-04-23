@@ -312,20 +312,29 @@ class BlockViewModel: ObservableObject {
     }
 
     private func enforcerBinarySourcePath() -> String? {
-        let bundled = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/MonkModeEnforcer").path
-        if FileManager.default.fileExists(atPath: bundled) {
-            return bundled
+        let bundleURL = Bundle.main.bundleURL
+
+        // Case 1 — running from an .app bundle. `bundleURL` is the .app dir.
+        let appBundled = bundleURL.appendingPathComponent("Contents/MacOS/MonkModeEnforcer").path
+        if FileManager.default.fileExists(atPath: appBundled) {
+            return appBundled
         }
-        // Fallback for `swift build` / Xcode runs: binary sits next to the main executable.
-        let sibling = Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("MonkModeEnforcer").path
+
+        // Case 2 — running as a bare executable (`swift run`, Xcode, `.build/debug`).
+        // For an unbundled binary, `Bundle.main.bundleURL` is the directory that
+        // holds the executable, so the enforcer sits *inside* that directory.
+        // The previous implementation used `deletingLastPathComponent()`, which
+        // walked up one level too far and caused the system to fall through to
+        // the installed-binary branch below — triggering
+        // `install: <path> and <path> are the same file` when reinstalling.
+        let sibling = bundleURL.appendingPathComponent("MonkModeEnforcer").path
         if FileManager.default.fileExists(atPath: sibling) {
             return sibling
         }
-        // Installed MonkMode binary (reinstall flow).
-        let installed = "/usr/local/bin/monkmode-enforcer"
-        if FileManager.default.fileExists(atPath: installed) {
-            return installed
-        }
+
+        // NOTE: the install target `/usr/local/bin/monkmode-enforcer` is
+        // intentionally NOT a fallback source — returning it here caused
+        // `install` to copy a file onto itself (exit 64).
         // Legacy install paths from earlier names — keep as last-resort fallbacks so
         // a transitioning install can still find a prior binary.
         let legacySelfControl = "/usr/local/bin/selfcontrol-enforcer"
@@ -403,7 +412,9 @@ class BlockViewModel: ObservableObject {
         echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] install: starting"
         trap 'ec=$?; echo "[$(date -u '\"'\"'+%Y-%m-%dT%H:%M:%SZ'\"'\"')] install: exit=$ec"; exit $ec' EXIT
 
-        install -m 0755 \(enforcerSrcQ) \(enforcerBinaryDest)
+        if [ "$(readlink -f \(enforcerSrcQ) 2>/dev/null || echo \(enforcerSrcQ))" != "$(readlink -f \(enforcerBinaryDest) 2>/dev/null || echo \(enforcerBinaryDest))" ]; then
+          install -m 0755 \(enforcerSrcQ) \(enforcerBinaryDest)
+        fi
         cp \(tempConfigQ) \(supportConfig)
         cp \(tempIPCacheQ) \(supportIPCache)
         cp \(tempPfRulesQ) \(pfAnchorPath)
