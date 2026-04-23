@@ -1,0 +1,34 @@
+# CODEOWNERS — requires owner approval for changes to privileged paths.
+# See docs/THREAT_MODEL.md for why these files are sensitive.
+# Syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Privileged script generators — any change here can affect the bash
+# script that runs as root via NSAppleScript.
+/Sources/BlockSitesApp/Services/PrivilegedExecutor.swift  @gilbertsahumada
+/Sources/BlockSitesApp/ViewModels/BlockViewModel.swift    @gilbertsahumada
+
+# Input sanitizers — the validator and quoter sitting between user input
+# and privileged files.
+/Sources/BlockSitesCore/DomainValidator.swift             @gilbertsahumada
+/Sources/BlockSitesCore/ShellQuote.swift                  @gilbertsahumada
+/Sources/BlockSitesCore/HostsGenerator.swift              @gilbertsahumada
+/Sources/BlockSitesCore/PfConfCleaner.swift               @gilbertsahumada
+/Sources/BlockSitesCore/DaemonPlistBuilder.swift          @gilbertsahumada
+/Sources/BlockSitesCore/Constants.swift                   @gilbertsahumada
+
+# The entire enforcer target — runs as root on a 60s interval.
+/Sources/BlockSitesEnforcer/                              @gilbertsahumada
+
+# Adversarial test corpus — removing a test here weakens the safety net.
+/Tests/BlockSitesE2ETests/AdversarialInputTests.swift     @gilbertsahumada
+/Tests/BlockSitesCoreTests/ShellQuoteTests.swift          @gilbertsahumada
+
+# Release pipeline — compromise here ships a bad binary to every user.
+/scripts/build_dmg.sh                                     @gilbertsahumada
+/scripts/smoke_test.sh                                    @gilbertsahumada
+/.github/workflows/                                       @gilbertsahumada
+/.github/CODEOWNERS                                       @gilbertsahumada
+
+# Security documents — live alongside the code they describe.
+/SECURITY.md                                              @gilbertsahumada
+/docs/THREAT_MODEL.md                                     @gilbertsahumada

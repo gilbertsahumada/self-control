@@ -117,10 +117,23 @@ If sites remain blocked after the timer expires, see [TROUBLESHOOTING.md](TROUBL
 
 ## Security
 
-- Input validation for custom domains (prevents injection)
-- Script injection prevention via temp file execution
-- Secure shell escaping for sed commands
-- Hash-based change detection to minimize system impact
+MonkMode runs a LaunchDaemon as root. Security reports are handled privately —
+please **do not** open a public issue for a vulnerability. See
+[SECURITY.md](SECURITY.md) for the disclosure policy and
+[docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) for the adversary model,
+trust boundaries, and current mitigations.
+
+In-code safeguards:
+
+- `DomainValidator` rejects control characters, non-ASCII (Unicode
+  homoglyphs), IP-like strings, and structural violations.
+- `ShellQuote` quotes every value interpolated into the privileged bash
+  script and escapes both the POSIX shell layer and the AppleScript
+  string literal layer. Violations fail the build via the
+  `AdversarialInputTests` corpus.
+- Enforcer re-applies the block every 60 seconds and a secondary
+  LaunchDaemon fires at exact `endTime` as redundancy.
+- `CODEOWNERS` guards every privileged code path and the release pipeline.
 
 ## Warning
 
