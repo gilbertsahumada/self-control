@@ -112,8 +112,11 @@ check_mode() {
 }
 if [[ -d "$SUPPORT_DIR" ]]; then
     check_mode "$SUPPORT_DIR" "755"
-    check_mode "$SUPPORT_DIR/config.json" "600"
-    check_mode "$SUPPORT_DIR/ip_cache.json" "600"
+    # config.json + ip_cache.json must be world-readable (0644) so the
+    # unprivileged app can check block state; root-only write protects
+    # against tampering. See #24.
+    check_mode "$SUPPORT_DIR/config.json" "644"
+    check_mode "$SUPPORT_DIR/ip_cache.json" "644"
     check_mode "$SUPPORT_DIR/hosts.backup" "600"
 fi
 

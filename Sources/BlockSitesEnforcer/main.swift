@@ -6,9 +6,43 @@ struct EnforcerState: Codable {
     var firstRunDone: Bool
 }
 
+/// Rotate the enforcer log when it crosses this size. One tick of the
+/// enforcer writes at most a few dozen bytes, so at 60s cadence a
+/// 1 MB cap still holds ~months of history.
+private let enforcerLogMaxBytes: Int = 1_000_000
+
+private func rotateLogIfNeeded() {
+    let path = MonkModeConstants.enforcerLogPath
+    guard let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+          let size = attrs[.size] as? Int,
+          size >= enforcerLogMaxBytes else {
+        return
+    }
+    let rotated = path + ".1"
+    try? FileManager.default.removeItem(atPath: rotated)
+    try? FileManager.default.moveItem(atPath: path, toPath: rotated)
+}
+
+/// Strip user-chosen domains from log messages so another local user
+/// (or an attacker who later gains read access to the log) cannot
+/// reconstruct the block list from the tail. A debug build with
+/// `MONKMODE_LOG_VERBOSE=1` in the environment preserves raw content.
+private func redact(_ message: String) -> String {
+    if ProcessInfo.processInfo.environment["MONKMODE_LOG_VERBOSE"] == "1" {
+        return message
+    }
+    let pattern = #"([a-z0-9][a-z0-9-]{0,61}\.)+[a-z]{2,}"#
+    guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+        return message
+    }
+    let range = NSRange(message.startIndex..., in: message)
+    return regex.stringByReplacingMatches(in: message, range: range, withTemplate: "<domain>")
+}
+
 func enforcerLog(_ message: String) {
+    rotateLogIfNeeded()
     let timestamp = ISO8601DateFormatter().string(from: Date())
-    let entry = "[\(timestamp)] \(message)\n"
+    let entry = "[\(timestamp)] \(redact(message))\n"
     if let handle = FileHandle(forWritingAtPath: MonkModeConstants.enforcerLogPath) {
         handle.seekToEndOfFile()
         handle.write(entry.data(using: .utf8) ?? Data())

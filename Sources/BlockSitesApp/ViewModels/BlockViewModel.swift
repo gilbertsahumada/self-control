@@ -470,7 +470,13 @@ class BlockViewModel: ObservableObject {
         cp \(tempCleanupPlistQ) \(cleanupDaemonPath)
         cp \(hostsPath) \(supportHostsBackup)
         chown root:wheel \(supportConfig) \(supportIPCache) \(supportHostsBackup)
-        chmod 0600 \(supportConfig) \(supportIPCache) \(supportHostsBackup)
+        # config.json + ip_cache.json are world-readable (0644) so the
+        # unprivileged app can check block state. They are only WRITABLE
+        # by root, which is what protects against a second local user
+        # shortening the timer. hosts.backup stays 0600 because it mirrors
+        # the user's full /etc/hosts and may contain private entries.
+        chmod 0644 \(supportConfig) \(supportIPCache)
+        chmod 0600 \(supportHostsBackup)
         sed -i '' '/\(marker)/d' \(hostsPath)
         cat \(tempHostsEntriesQ) >> \(hostsPath)
         /usr/bin/dscacheutil -flushcache
