@@ -107,15 +107,6 @@ class BlockViewModel: ObservableObject {
         return formatter.string(from: config.endTime)
     }
 
-    private func escapeForSed(_ string: String) -> String {
-        return string
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "[", with: "\\[")
-            .replacingOccurrences(of: "]", with: "\\]")
-            .replacingOccurrences(of: "*", with: "\\*")
-            .replacingOccurrences(of: ".", with: "\\.")
-    }
-
     // MARK: - Check Existing Block + Recovery
 
     func checkExistingBlock() {
@@ -187,7 +178,7 @@ class BlockViewModel: ObservableObject {
 
         Task {
             do {
-                let script = buildRecoveryCleanupScript()
+                let script = try buildRecoveryCleanupScript()
                 try PrivilegedExecutor.run(script)
                 await MainActor.run {
                     self.isProcessing = false
@@ -370,92 +361,118 @@ class BlockViewModel: ObservableObject {
             throw NSError(domain: "MonkMode", code: 2, userInfo: [NSLocalizedDescriptionKey: "MonkModeEnforcer binary not found in app bundle"])
         }
 
-        let escapedMarker = escapeForSed(MonkModeConstants.marker)
-        let supportDir = MonkModeConstants.supportDir
-        let pfAnchorPath = MonkModeConstants.pfAnchorPath
-        let enforcerDaemonPath = MonkModeConstants.enforcerDaemonPlistPath
-        let cleanupDaemonPath = MonkModeConstants.cleanupDaemonPlistPath
-        let enforcerBinaryDest = MonkModeConstants.enforcerInstallPath
-        let hostsPath = MonkModeConstants.hostsPath
-        let pfConfPath = MonkModeConstants.pfConfPath
-        let installLog = MonkModeConstants.installLogPath
+        // Every interpolated value MUST go through ShellQuote. The helper
+        // rejects control characters and returns a single-quoted string
+        // safe to drop into bash. Violating this invariant can execute
+        // arbitrary commands as root — see #15.
+        let q = ShellQuote.posixSingleQuote
+        let marker = try ShellQuote.sedBRE(MonkModeConstants.marker)
+        let supportDir = try q(MonkModeConstants.supportDir)
+        let pfAnchorPath = try q(MonkModeConstants.pfAnchorPath)
+        let enforcerDaemonPath = try q(MonkModeConstants.enforcerDaemonPlistPath)
+        let cleanupDaemonPath = try q(MonkModeConstants.cleanupDaemonPlistPath)
+        let enforcerBinaryDest = try q(MonkModeConstants.enforcerInstallPath)
+        let hostsPath = try q(MonkModeConstants.hostsPath)
+        let pfConfPath = try q(MonkModeConstants.pfConfPath)
+        let installLog = try q(MonkModeConstants.installLogPath)
+        let supportConfig = try q("\(MonkModeConstants.supportDir)/config.json")
+        let supportIPCache = try q("\(MonkModeConstants.supportDir)/ip_cache.json")
+        let supportHostsBackup = try q("\(MonkModeConstants.supportDir)/hosts.backup")
+        let enforcerSrcQ = try q(enforcerSrc)
+        let tempConfigQ = try q(tempConfig.path)
+        let tempPfRulesQ = try q(tempPfRules.path)
+        let tempIPCacheQ = try q(tempIPCache.path)
+        let tempEnforcerPlistQ = try q(tempEnforcerPlist.path)
+        let tempCleanupPlistQ = try q(tempCleanupPlist.path)
+        let tempHostsEntriesQ = try q(tempHostsEntries.path)
+        let tempDirQ = try q(tempDir.path)
 
-        let anchorDecl = "anchor \\\"\(MonkModeConstants.pfAnchorName)\\\""
-        let loadDecl = "load anchor \\\"\(MonkModeConstants.pfAnchorName)\\\" from \\\"\(pfAnchorPath)\\\""
+        // The pf.conf anchor block goes into an `fi` grep check and a printf.
+        // Build its two canonical forms here so the script body only does a
+        // literal substitution on a pre-validated string.
+        let anchorDecl = "anchor \"\(MonkModeConstants.pfAnchorName)\""
+        let loadDecl = "load anchor \"\(MonkModeConstants.pfAnchorName)\" from \"\(MonkModeConstants.pfAnchorPath)\""
+        let anchorGrep = try q(anchorDecl)
 
-        // set -e ensures any failure aborts. trap logs final status.
         let script = """
         #!/bin/bash
         set -e
-        mkdir -p '\(supportDir)'
-        LOG='\(installLog)'
+        mkdir -p \(supportDir)
+        LOG=\(installLog)
         exec > >(tee -a "$LOG") 2>&1
         echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] install: starting"
         trap 'ec=$?; echo "[$(date -u '\"'\"'+%Y-%m-%dT%H:%M:%SZ'\"'\"')] install: exit=$ec"; exit $ec' EXIT
 
-        install -m 0755 '\(enforcerSrc)' '\(enforcerBinaryDest)'
-        cp '\(tempConfig.path)' '\(supportDir)/config.json'
-        cp '\(tempIPCache.path)' '\(supportDir)/ip_cache.json'
-        cp '\(tempPfRules.path)' '\(pfAnchorPath)'
-        cp '\(tempEnforcerPlist.path)' '\(enforcerDaemonPath)'
-        cp '\(tempCleanupPlist.path)' '\(cleanupDaemonPath)'
-        cp '\(hostsPath)' '\(supportDir)/hosts.backup'
-        sed -i '' '/\(escapedMarker)/d' '\(hostsPath)'
-        cat '\(tempHostsEntries.path)' >> '\(hostsPath)'
+        install -m 0755 \(enforcerSrcQ) \(enforcerBinaryDest)
+        cp \(tempConfigQ) \(supportConfig)
+        cp \(tempIPCacheQ) \(supportIPCache)
+        cp \(tempPfRulesQ) \(pfAnchorPath)
+        cp \(tempEnforcerPlistQ) \(enforcerDaemonPath)
+        cp \(tempCleanupPlistQ) \(cleanupDaemonPath)
+        cp \(hostsPath) \(supportHostsBackup)
+        chmod 0600 \(supportConfig) \(supportIPCache) \(supportHostsBackup)
+        sed -i '' '/\(marker)/d' \(hostsPath)
+        cat \(tempHostsEntriesQ) >> \(hostsPath)
         /usr/bin/dscacheutil -flushcache
         /usr/bin/killall -HUP mDNSResponder 2>/dev/null || true
-        if ! grep -q '\(anchorDecl)' '\(pfConfPath)'; then
-          printf '\\n# MonkMode anchor\\n\(anchorDecl)\\n\(loadDecl)\\n' >> '\(pfConfPath)'
+        if ! grep -qF \(anchorGrep) \(pfConfPath); then
+          printf '\\n# MonkMode anchor\\n%s\\n%s\\n' \(try q(anchorDecl)) \(try q(loadDecl)) >> \(pfConfPath)
         fi
         /sbin/pfctl -e 2>/dev/null || true
-        /sbin/pfctl -f '\(pfConfPath)' 2>/dev/null || true
+        /sbin/pfctl -f \(pfConfPath) 2>/dev/null || true
 
-        /bin/launchctl unload -w '\(enforcerDaemonPath)' 2>/dev/null || true
-        /bin/launchctl load -w '\(enforcerDaemonPath)'
-        /bin/launchctl unload -w '\(cleanupDaemonPath)' 2>/dev/null || true
-        /bin/launchctl load -w '\(cleanupDaemonPath)'
+        /bin/launchctl unload -w \(enforcerDaemonPath) 2>/dev/null || true
+        /bin/launchctl load -w \(enforcerDaemonPath)
+        /bin/launchctl unload -w \(cleanupDaemonPath) 2>/dev/null || true
+        /bin/launchctl load -w \(cleanupDaemonPath)
 
-        rm -rf '\(tempDir.path)'
+        rm -rf \(tempDirQ)
         echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] install: success"
         """
 
         return script
     }
 
-    private func buildRecoveryCleanupScript() -> String {
-        let escapedMarker = escapeForSed(MonkModeConstants.marker)
-        let hostsPath = MonkModeConstants.hostsPath
-        let pfConfPath = MonkModeConstants.pfConfPath
-        let pfAnchorPath = MonkModeConstants.pfAnchorPath
-        let supportDir = MonkModeConstants.supportDir
-        let enforcerDaemonPath = MonkModeConstants.enforcerDaemonPlistPath
-        let cleanupDaemonPath = MonkModeConstants.cleanupDaemonPlistPath
-        let installLog = MonkModeConstants.installLogPath
+    private func buildRecoveryCleanupScript() throws -> String {
+        let q = ShellQuote.posixSingleQuote
+        let marker = try ShellQuote.sedBRE(MonkModeConstants.marker)
+        let anchorPattern = try ShellQuote.sedBRE("anchor \"\(MonkModeConstants.pfAnchorName)\"")
+        let loadAnchorPattern = try ShellQuote.sedBRE("load anchor \"\(MonkModeConstants.pfAnchorName)\"")
+        let hostsPath = try q(MonkModeConstants.hostsPath)
+        let pfConfPath = try q(MonkModeConstants.pfConfPath)
+        let pfAnchorPath = try q(MonkModeConstants.pfAnchorPath)
+        let supportDir = try q(MonkModeConstants.supportDir)
+        let enforcerDaemonPath = try q(MonkModeConstants.enforcerDaemonPlistPath)
+        let cleanupDaemonPath = try q(MonkModeConstants.cleanupDaemonPlistPath)
+        let installLog = try q(MonkModeConstants.installLogPath)
+        let configPath = try q("\(MonkModeConstants.supportDir)/config.json")
+        let ipCachePath = try q("\(MonkModeConstants.supportDir)/ip_cache.json")
+        let hostsBackupPath = try q("\(MonkModeConstants.supportDir)/hosts.backup")
+        let statePath = try q("\(MonkModeConstants.supportDir)/enforcer_state.json")
 
         return """
         #!/bin/bash
         set +e
-        mkdir -p '\(supportDir)'
-        LOG='\(installLog)'
+        mkdir -p \(supportDir)
+        LOG=\(installLog)
         exec > >(tee -a "$LOG") 2>&1
         echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] recovery: starting"
 
-        sed -i '' '/\(escapedMarker)/d' '\(hostsPath)'
+        sed -i '' '/\(marker)/d' \(hostsPath)
         /usr/bin/dscacheutil -flushcache
         /usr/bin/killall -HUP mDNSResponder 2>/dev/null || true
 
-        # Remove anchor lines from pf.conf (match both Apple-escaped and literal forms)
-        sed -i '' '/# MonkMode anchor/d' '\(pfConfPath)'
-        sed -i '' '/anchor "\(MonkModeConstants.pfAnchorName)"/d' '\(pfConfPath)'
-        sed -i '' '/load anchor "\(MonkModeConstants.pfAnchorName)"/d' '\(pfConfPath)'
+        sed -i '' '/# MonkMode anchor/d' \(pfConfPath)
+        sed -i '' '/\(anchorPattern)/d' \(pfConfPath)
+        sed -i '' '/\(loadAnchorPattern)/d' \(pfConfPath)
         /sbin/pfctl -d 2>/dev/null || true
-        /sbin/pfctl -f '\(pfConfPath)' 2>/dev/null || true
-        rm -f '\(pfAnchorPath)'
+        /sbin/pfctl -f \(pfConfPath) 2>/dev/null || true
+        rm -f \(pfAnchorPath)
 
-        /bin/launchctl unload -w '\(enforcerDaemonPath)' 2>/dev/null || true
-        /bin/launchctl unload -w '\(cleanupDaemonPath)' 2>/dev/null || true
-        rm -f '\(enforcerDaemonPath)' '\(cleanupDaemonPath)'
-        rm -f '\(supportDir)/config.json' '\(supportDir)/ip_cache.json' '\(supportDir)/hosts.backup' '\(supportDir)/enforcer_state.json'
+        /bin/launchctl unload -w \(enforcerDaemonPath) 2>/dev/null || true
+        /bin/launchctl unload -w \(cleanupDaemonPath) 2>/dev/null || true
+        rm -f \(enforcerDaemonPath) \(cleanupDaemonPath)
+        rm -f \(configPath) \(ipCachePath) \(hostsBackupPath) \(statePath)
 
         echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] recovery: success"
         """
