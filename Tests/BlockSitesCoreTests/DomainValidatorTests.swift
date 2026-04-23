@@ -92,7 +92,11 @@ final class DomainValidatorTests: XCTestCase {
         XCTAssertTrue(valid.contains("example.com"))
         XCTAssertTrue(valid.contains("test.org"))
         XCTAssertEqual(valid.count, 2)
-        XCTAssertEqual(invalid.count, 3)
+        // Empty strings are silently ignored (not counted as invalid) so the
+        // caller's UI doesn't have to filter empties before calling us.
+        XCTAssertEqual(invalid.count, 2)
+        XCTAssertTrue(invalid.contains("not a domain"))
+        XCTAssertTrue(invalid.contains("*.wildcard.com"))
     }
 
     func testValidateAndCleanDeduplicates() {
