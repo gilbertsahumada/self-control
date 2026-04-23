@@ -170,6 +170,50 @@ class BlockViewModel: ObservableObject {
         return hosts.contains(MonkModeConstants.marker)
     }
 
+    /// Full uninstall: runs the bundled `uninstall.sh` via privileged
+    /// execution. Removes every system modification MonkMode installs
+    /// (daemons, enforcer binary, support dir, hosts entries, pf anchor).
+    /// Leaves /Applications/MonkMode.app in place — user drags to Trash.
+    func runUninstall() {
+        let scriptPath = Bundle.main.url(forResource: "uninstall", withExtension: "sh")?.path
+            ?? Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/uninstall.sh").path
+
+        guard FileManager.default.fileExists(atPath: scriptPath) else {
+            errorMessage = "uninstall.sh not found at \(scriptPath)"
+            return
+        }
+
+        isProcessing = true
+        errorMessage = nil
+
+        Task {
+            do {
+                let quoted = try ShellQuote.posixSingleQuote(scriptPath)
+                let wrapper = "#!/bin/bash\nbash \(quoted)\n"
+                try PrivilegedExecutor.run(wrapper)
+                await MainActor.run {
+                    self.isProcessing = false
+                    self.isBlocking = false
+                    self.config = nil
+                    self.needsRecoveryCleanup = false
+                    self.isWaitingForDaemonCleanup = false
+                    self.errorMessage = "MonkMode was uninstalled. Drag the app to the Trash to complete."
+                }
+            } catch let error as PrivilegedExecutor.ExecutionError {
+                await MainActor.run {
+                    self.isProcessing = false
+                    if case .userCancelled = error { return }
+                    self.errorMessage = error.localizedDescription
+                }
+            } catch {
+                await MainActor.run {
+                    self.isProcessing = false
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
     /// Triggers a privileged cleanup of leftover /etc/hosts + pf state.
     /// Used when the enforcer daemon failed to clean up after expiry.
     func runRecoveryCleanup() {

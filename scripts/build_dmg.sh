@@ -30,6 +30,11 @@ if [ -f "assets/AppIcon.icns" ]; then
   echo "App icon copied to Resources"
 fi
 
+# Ship the uninstall script inside the app so the in-app uninstall flow
+# can locate it via Bundle.main.
+cp "scripts/uninstall.sh" "$RESOURCES_PATH/uninstall.sh"
+chmod +x "$RESOURCES_PATH/uninstall.sh"
+
 # Create Info.plist
 cat > "$CONTENTS_PATH/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
