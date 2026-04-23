@@ -6,20 +6,6 @@ import Foundation
 /// raw user- or OS-controlled string reaches the shell unescaped.
 public enum ShellQuote {
 
-    /// Characters that must not appear in any value we are about to quote.
-    /// These break the surrounding quoting layer regardless of escape tricks.
-    /// NUL is rejected because Unix tools truncate on it; newline and carriage
-    /// return are rejected because they would start a new command in bash
-    /// (even inside single quotes if the outer layer were ever split).
-    private static let forbiddenControlCharacters: Set<Character> = {
-        var set: Set<Character> = ["\u{0000}"]
-        for scalar in 0x01...0x08 { set.insert(Character(UnicodeScalar(scalar)!)) }
-        for scalar in 0x0B...0x0C { set.insert(Character(UnicodeScalar(scalar)!)) }
-        for scalar in 0x0E...0x1F { set.insert(Character(UnicodeScalar(scalar)!)) }
-        set.insert("\u{007F}")
-        return set
-    }()
-
     public enum QuotingError: Error, Equatable {
         case containsControlCharacter
         case containsNewline
@@ -63,12 +49,22 @@ public enum ShellQuote {
         return escaped
     }
 
+    /// Rejects the whole ASCII control-character band (0x00–0x1F and 0x7F).
+    /// LF (0x0A) and CR (0x0D) throw `.containsNewline` so callers can
+    /// distinguish "line break" from "other control char" — everything
+    /// else throws `.containsControlCharacter`. We iterate over Unicode
+    /// scalars instead of using `String.contains("\n")` because Swift
+    /// collapses `"\r\n"` into a single grapheme cluster, which can cause
+    /// substring matches to miss a newline that clearly exists.
     private static func assertPrintable(_ value: String) throws {
-        if value.contains("\n") || value.contains("\r") {
-            throw QuotingError.containsNewline
-        }
-        for char in value where forbiddenControlCharacters.contains(char) {
-            throw QuotingError.containsControlCharacter
+        for scalar in value.unicodeScalars {
+            let code = scalar.value
+            if code == 0x0A || code == 0x0D {
+                throw QuotingError.containsNewline
+            }
+            if code < 0x20 || code == 0x7F {
+                throw QuotingError.containsControlCharacter
+            }
         }
     }
 }
