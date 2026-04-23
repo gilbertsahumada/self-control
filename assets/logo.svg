@@ -1,31 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="lockBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#818CF8"/>
-      <stop offset="100%" stop-color="#4F46E5"/>
+    <linearGradient id="phosphorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#b4f4c2"/>
+      <stop offset="55%" stop-color="#73e68a"/>
+      <stop offset="100%" stop-color="#3e9e56"/>
     </linearGradient>
-    <linearGradient id="shackleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#A5B4FC"/>
-      <stop offset="100%" stop-color="#6366F1"/>
-    </linearGradient>
+    <pattern id="scanlines" x="0" y="0" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="transparent"/>
+      <rect width="6" height="1" fill="#000" opacity="0.22"/>
+    </pattern>
+    <clipPath id="iconClip">
+      <rect x="0" y="0" width="512" height="512" rx="96" ry="96"/>
+    </clipPath>
   </defs>
-  <!-- Lock shackle (U-shape) -->
-  <path d="M168 220 L168 148 C168 80 208 40 256 40 C304 40 344 80 344 148 L344 220"
-        fill="none" stroke="url(#shackleGrad)" stroke-width="36" stroke-linecap="round"/>
-  <!-- Lock body (rounded rectangle) -->
-  <rect x="120" y="220" width="272" height="252" rx="40" ry="40"
-        fill="url(#lockBodyGrad)"/>
-  <!-- Timer arc on lock body -->
-  <circle cx="256" cy="340" r="72" fill="none" stroke="#1E1B4B" stroke-width="16" opacity="0.4"/>
-  <!-- Timer progress arc (270 degrees = 3/4 complete) -->
-  <path d="M256 268 A72 72 0 1 1 184 340"
-        fill="none" stroke="#E0E7FF" stroke-width="16" stroke-linecap="round"/>
-  <!-- Timer tick marks -->
-  <line x1="256" y1="276" x2="256" y2="288" stroke="#C7D2FE" stroke-width="4" stroke-linecap="round"/>
-  <line x1="320" y1="340" x2="308" y2="340" stroke="#C7D2FE" stroke-width="4" stroke-linecap="round"/>
-  <line x1="256" y1="404" x2="256" y2="392" stroke="#C7D2FE" stroke-width="4" stroke-linecap="round"/>
-  <line x1="192" y1="340" x2="204" y2="340" stroke="#C7D2FE" stroke-width="4" stroke-linecap="round"/>
-  <!-- Timer hand -->
-  <line x1="256" y1="340" x2="256" y2="288" stroke="#E0E7FF" stroke-width="6" stroke-linecap="round"/>
-  <circle cx="256" cy="340" r="6" fill="#E0E7FF"/>
+
+  <!-- Screen background -->
+  <rect x="0" y="0" width="512" height="512" rx="96" ry="96" fill="#0a140c"/>
+
+  <!-- Faint phosphor inner glow -->
+  <rect x="24" y="24" width="464" height="464" rx="76" ry="76"
+        fill="none" stroke="#3e9e56" stroke-width="2" opacity="0.35"/>
+
+  <g clip-path="url(#iconClip)">
+    <!-- "M" block-letter glyph: two columns + two trapezoids meeting at center -->
+    <g fill="url(#phosphorGrad)">
+      <rect x="120" y="136" width="48" height="256"/>
+      <rect x="344" y="136" width="48" height="256"/>
+      <polygon points="168,136 220,136 256,230 256,290 168,180"/>
+      <polygon points="344,136 292,136 256,230 256,290 344,180"/>
+    </g>
+
+    <!-- Cursor block underscore -->
+    <rect x="216" y="420" width="80" height="28" fill="url(#phosphorGrad)"/>
+
+    <!-- Scanline overlay -->
+    <rect x="0" y="0" width="512" height="512" fill="url(#scanlines)"/>
+  </g>
 </svg>
