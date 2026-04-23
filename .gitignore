@@ -8,12 +8,13 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 
-# Ignore root markdown files except README and CONTRIBUTING
+# Ignore root markdown files except the ones we publish
 /*.md
 !README.md
 !CONTRIBUTING.md
 !RELEASE.md
 !TROUBLESHOOTING.md
+!SECURITY.md
 
 # worktrees
 .claude/worktrees   
