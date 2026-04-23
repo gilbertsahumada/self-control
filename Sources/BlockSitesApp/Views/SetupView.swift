@@ -60,6 +60,8 @@ struct SetupView: View {
                     Text("// WARNING: LOCKDOWN CANNOT BE ABORTED ONCE INITIATED")
                         .font(Theme.monoXS)
                         .foregroundColor(Theme.amber.opacity(0.7))
+
+                    uninstallRow
                 }
                 .padding(24)
             }
@@ -95,6 +97,28 @@ struct SetupView: View {
             )
             .lineSpacing(-2)
             .fixedSize(horizontal: true, vertical: true)
+    }
+
+    @State private var showUninstallConfirm = false
+
+    private var uninstallRow: some View {
+        HStack {
+            Spacer()
+            Button(action: { showUninstallConfirm = true }) {
+                Text("uninstall monkmode")
+                    .font(Theme.monoXS)
+                    .foregroundColor(Theme.phosphorMuted)
+                    .underline()
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isProcessing || viewModel.isBlocking)
+        }
+        .alert("[ CONFIRM UNINSTALL ]", isPresented: $showUninstallConfirm) {
+            Button("CANCEL", role: .cancel) {}
+            Button("UNINSTALL", role: .destructive) { viewModel.runUninstall() }
+        } message: {
+            Text("Removes the enforcer daemon, hosts entries, pf anchor, and /Library/Application Support/MonkMode. Drag the app to the Trash afterwards to finish.")
+        }
     }
 
     private var waitingBanner: some View {

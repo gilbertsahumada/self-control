@@ -94,7 +94,33 @@ else
     info "No PF anchor file at $PF_ANCHOR"
 fi
 
-# 6. Launch daemon plists
+# 6. Support dir permissions (see #24)
+SUPPORT_DIR="/Library/Application Support/MonkMode"
+check_mode() {
+    local path="$1"
+    local expected="$2"
+    if [[ ! -e "$path" ]]; then
+        return 0
+    fi
+    local mode
+    mode=$(/usr/bin/stat -f "%Lp" "$path" 2>/dev/null)
+    if [[ "$mode" == "$expected" ]]; then
+        ok "$path mode is $mode (expected $expected)"
+    else
+        fail "$path mode is $mode, expected $expected"
+    fi
+}
+if [[ -d "$SUPPORT_DIR" ]]; then
+    check_mode "$SUPPORT_DIR" "755"
+    # config.json + ip_cache.json must be world-readable (0644) so the
+    # unprivileged app can check block state; root-only write protects
+    # against tampering. See #24.
+    check_mode "$SUPPORT_DIR/config.json" "644"
+    check_mode "$SUPPORT_DIR/ip_cache.json" "644"
+    check_mode "$SUPPORT_DIR/hosts.backup" "600"
+fi
+
+# 7. Launch daemon plists
 report_plist() {
     local path="$1"
     local label="$2"

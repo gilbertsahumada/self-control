@@ -170,6 +170,50 @@ class BlockViewModel: ObservableObject {
         return hosts.contains(MonkModeConstants.marker)
     }
 
+    /// Full uninstall: runs the bundled `uninstall.sh` via privileged
+    /// execution. Removes every system modification MonkMode installs
+    /// (daemons, enforcer binary, support dir, hosts entries, pf anchor).
+    /// Leaves /Applications/MonkMode.app in place — user drags to Trash.
+    func runUninstall() {
+        let scriptPath = Bundle.main.url(forResource: "uninstall", withExtension: "sh")?.path
+            ?? Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/uninstall.sh").path
+
+        guard FileManager.default.fileExists(atPath: scriptPath) else {
+            errorMessage = "uninstall.sh not found at \(scriptPath)"
+            return
+        }
+
+        isProcessing = true
+        errorMessage = nil
+
+        Task {
+            do {
+                let quoted = try ShellQuote.posixSingleQuote(scriptPath)
+                let wrapper = "#!/bin/bash\nbash \(quoted)\n"
+                try PrivilegedExecutor.run(wrapper)
+                await MainActor.run {
+                    self.isProcessing = false
+                    self.isBlocking = false
+                    self.config = nil
+                    self.needsRecoveryCleanup = false
+                    self.isWaitingForDaemonCleanup = false
+                    self.errorMessage = "MonkMode was uninstalled. Drag the app to the Trash to complete."
+                }
+            } catch let error as PrivilegedExecutor.ExecutionError {
+                await MainActor.run {
+                    self.isProcessing = false
+                    if case .userCancelled = error { return }
+                    self.errorMessage = error.localizedDescription
+                }
+            } catch {
+                await MainActor.run {
+                    self.isProcessing = false
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
     /// Triggers a privileged cleanup of leftover /etc/hosts + pf state.
     /// Used when the enforcer daemon failed to clean up after expiry.
     func runRecoveryCleanup() {
@@ -407,7 +451,11 @@ class BlockViewModel: ObservableObject {
         #!/bin/bash
         set -e
         mkdir -p \(supportDir)
+        chown root:wheel \(supportDir)
+        chmod 0755 \(supportDir)
         LOG=\(installLog)
+        touch "$LOG"
+        chmod 0640 "$LOG"
         exec > >(tee -a "$LOG") 2>&1
         echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] install: starting"
         trap 'ec=$?; echo "[$(date -u '\"'\"'+%Y-%m-%dT%H:%M:%SZ'\"'\"')] install: exit=$ec"; exit $ec' EXIT
@@ -421,7 +469,14 @@ class BlockViewModel: ObservableObject {
         cp \(tempEnforcerPlistQ) \(enforcerDaemonPath)
         cp \(tempCleanupPlistQ) \(cleanupDaemonPath)
         cp \(hostsPath) \(supportHostsBackup)
-        chmod 0600 \(supportConfig) \(supportIPCache) \(supportHostsBackup)
+        chown root:wheel \(supportConfig) \(supportIPCache) \(supportHostsBackup)
+        # config.json + ip_cache.json are world-readable (0644) so the
+        # unprivileged app can check block state. They are only WRITABLE
+        # by root, which is what protects against a second local user
+        # shortening the timer. hosts.backup stays 0600 because it mirrors
+        # the user's full /etc/hosts and may contain private entries.
+        chmod 0644 \(supportConfig) \(supportIPCache)
+        chmod 0600 \(supportHostsBackup)
         sed -i '' '/\(marker)/d' \(hostsPath)
         cat \(tempHostsEntriesQ) >> \(hostsPath)
         /usr/bin/dscacheutil -flushcache

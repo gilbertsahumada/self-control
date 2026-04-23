@@ -30,6 +30,11 @@ if [ -f "assets/AppIcon.icns" ]; then
   echo "App icon copied to Resources"
 fi
 
+# Ship the uninstall script inside the app so the in-app uninstall flow
+# can locate it via Bundle.main.
+cp "scripts/uninstall.sh" "$RESOURCES_PATH/uninstall.sh"
+chmod +x "$RESOURCES_PATH/uninstall.sh"
+
 # Create Info.plist
 cat > "$CONTENTS_PATH/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -77,10 +82,12 @@ codesign --verify --verbose "dist/$APP_NAME"
 
 echo "App bundle created at dist/$APP_NAME"
 
-# Create DMG — move .app to a temp staging dir so the DMG only contains the .app
+# Create DMG — stage the .app + the uninstaller so the DMG is self-contained.
 echo "Creating DMG..."
 STAGING_DIR=$(mktemp -d)
 cp -R "dist/$APP_NAME" "$STAGING_DIR/"
+cp "scripts/uninstall.sh" "$STAGING_DIR/uninstall.sh"
+chmod +x "$STAGING_DIR/uninstall.sh"
 hdiutil create -volname "MonkMode" -srcfolder "$STAGING_DIR" -ov -format UDZO "dist/MonkMode-${APP_VERSION}.dmg"
 rm -rf "$STAGING_DIR"
 
