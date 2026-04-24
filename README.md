@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/logo.svg" width="128" height="128" alt="SelfControl logo" />
+  <img src="assets/logo.svg" width="128" height="128" alt="MonkMode logo" />
 </p>
 
-<h1 align="center">SelfControl</h1>
+<h1 align="center">MonkMode</h1>
 
 <p align="center">A native macOS SwiftUI app that blocks distracting websites for a set duration.<br/>Once started, there is <b>no way to undo</b> the blocking until the timer expires — perfect for focused work sessions.</p>
 
@@ -10,13 +10,14 @@ Built with Swift 5.9+ and SwiftUI. Requires macOS 13 (Ventura) or later.
 
 ## Features
 
-- **Dual-layer blocking** — DNS (`/etc/hosts`) + firewall (`pf`) for maximum effectiveness
-- **Popular site presets** — One-click toggles for Instagram, Facebook, Twitter/X, YouTube, TikTok, Reddit
-- **Custom domains** — Block any website by entering its domain (with validation)
+- **Dual-layer blocking** — DNS (`/etc/hosts` with IPv4 + IPv6 entries) + firewall (`pf`) for maximum effectiveness
+- **Popular site presets** — One-click toggles for Instagram, Facebook, X, YouTube, TikTok, Reddit, LinkedIn
+- **Custom domains** — Add any domain with enter-to-confirm chip input (validation rejects control chars, homoglyphs, IP-like strings)
 - **Subdomain coverage** — Automatically blocks www, mobile, CDN, API, and platform-specific subdomains
 - **DNS-over-HTTPS protection** — Blocks known DoH providers to prevent browser bypass
 - **CIDR range blocking** — Blocks entire IP ranges for major platforms at the firewall level
 - **Enforcer daemon** — Re-applies blocks every 60 seconds if you tamper with system files
+- **Redundant cleanup** — Secondary LaunchDaemon fires at exact endTime as safety net
 - **No sudo needed** — Uses the native macOS password dialog for privilege escalation
 - **Full cleanup** — Everything is automatically restored when the timer expires (including disabling pf)
 
