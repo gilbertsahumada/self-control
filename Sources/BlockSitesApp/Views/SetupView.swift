@@ -316,6 +316,7 @@ struct SetupView: View {
 
     private func siteToggle(_ site: PopularSite) -> some View {
         let isSelected = viewModel.selectedSites.contains(site.domain)
+        let accent = isSelected ? Theme.phosphor : Theme.phosphorDim
         return Button(action: {
             if isSelected {
                 viewModel.selectedSites.remove(site.domain)
@@ -323,22 +324,19 @@ struct SetupView: View {
                 viewModel.selectedSites.insert(site.domain)
             }
         }) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Text(isSelected ? "[■]" : "[ ]")
                     .font(Theme.monoMD.weight(.bold))
-                    .foregroundColor(isSelected ? Theme.phosphor : Theme.phosphorDim)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(site.domain)
-                        .font(Theme.monoMD.weight(.semibold))
-                        .foregroundColor(isSelected ? Theme.phosphor : Theme.phosphorDim)
-                    let count = DomainExpander.subdomainCount(for: site.domain)
-                    Text("+\(count) subs")
-                        .font(Theme.monoXS)
-                        .foregroundColor(Theme.phosphorMuted)
-                }
+                    .foregroundColor(accent)
+                BrandIcon(brand: site.brandIcon, fallback: site.fallbackSymbol, size: 18)
+                    .foregroundStyle(accent)
+                Text(site.name)
+                    .font(Theme.monoMD.weight(.semibold))
+                    .foregroundColor(accent)
                 Spacer()
             }
-            .padding(10)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
             .background(isSelected ? Theme.phosphor.opacity(0.1) : Theme.surface)
             .overlay(Rectangle().stroke(isSelected ? Theme.phosphor : Theme.phosphorMuted, lineWidth: 1))
         }
