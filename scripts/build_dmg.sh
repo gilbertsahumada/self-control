@@ -35,6 +35,14 @@ fi
 cp "scripts/uninstall.sh" "$RESOURCES_PATH/uninstall.sh"
 chmod +x "$RESOURCES_PATH/uninstall.sh"
 
+# Ship the brand icon SVGs under Resources/BrandIcons/ so BrandIcon.swift
+# can resolve them via Bundle.main.url(..., subdirectory: "BrandIcons").
+if [ -d "assets/brand-icons" ]; then
+  mkdir -p "$RESOURCES_PATH/BrandIcons"
+  cp assets/brand-icons/*.svg "$RESOURCES_PATH/BrandIcons/"
+  echo "Brand icons copied to Resources/BrandIcons"
+fi
+
 # Create Info.plist
 cat > "$CONTENTS_PATH/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
