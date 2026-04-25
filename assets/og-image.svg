@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
+  <defs>
+    <linearGradient id="ogPhosphor" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#c5f7d2"/>
+      <stop offset="50%" stop-color="#73e68a"/>
+      <stop offset="100%" stop-color="#3e9e56"/>
+    </linearGradient>
+    <pattern id="ogScanlines" x="0" y="0" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="transparent"/>
+      <rect width="6" height="1" fill="#000" opacity="0.18"/>
+    </pattern>
+    <radialGradient id="ogVignette" cx="50%" cy="50%" r="60%">
+      <stop offset="55%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.5"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Screen background -->
+  <rect width="1280" height="640" fill="#0a140c"/>
+
+  <!-- Left block: big M -->
+  <g transform="translate(80 80)" fill="url(#ogPhosphor)">
+    <rect x="0" y="0" width="80" height="480"/>
+    <rect x="400" y="0" width="80" height="480"/>
+    <polygon points="80,0 168,0 240,170 240,290 80,80"/>
+    <polygon points="400,0 312,0 240,170 240,290 400,80"/>
+  </g>
+  <!-- Cursor under the M -->
+  <rect x="240" y="600" width="160" height="14" fill="url(#ogPhosphor)" transform="translate(80 -56)"/>
+
+  <!-- Vertical separator -->
+  <rect x="640" y="120" width="2" height="400" fill="#3e9e56" opacity="0.4"/>
+
+  <!-- Right block: text -->
+  <g transform="translate(680 140)" font-family="Menlo, Monaco, monospace">
+    <text x="0" y="36" font-size="20" fill="#73e68a" opacity="0.7">user@mac:~$ monkmode --about</text>
+
+    <text x="0" y="150" font-size="100" font-weight="700" fill="url(#ogPhosphor)" letter-spacing="-1">monkmode</text>
+
+    <text x="0" y="210" font-size="20" fill="#e0f0e3">strict macOS website blocker for deep work</text>
+    <text x="0" y="240" font-size="20" fill="#a0c8a5">no abort. no override. timer is law.</text>
+
+    <g transform="translate(0 310)" font-size="16">
+      <rect x="0" y="-18" width="106" height="28" fill="#73e68a"/>
+      <text x="53" y="2" text-anchor="middle" fill="#0a140c" font-weight="700">// macOS 13+</text>
+
+      <text x="120" y="0" fill="#a0c8a5">native swiftui · zero telemetry · open source</text>
+    </g>
+
+    <text x="0" y="375" font-size="14" fill="#5a8060" opacity="0.8">github.com/gilbertsahumada/self-control</text>
+  </g>
+
+  <!-- Scanline overlay (above content, with multiply blend) -->
+  <rect width="1280" height="640" fill="url(#ogScanlines)" style="mix-blend-mode: multiply"/>
+  <!-- Vignette darkens edges so attention falls on the M and wordmark -->
+  <rect width="1280" height="640" fill="url(#ogVignette)"/>
+</svg>
