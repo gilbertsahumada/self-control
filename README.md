@@ -25,7 +25,7 @@ Built with Swift 5.9+ and SwiftUI. Requires macOS 13 (Ventura) or later.
 
 ### Option 1: DMG (Recommended)
 
-1. Download the latest `SelfControl-X.X.X.dmg` from [Releases](https://github.com/gilbertsahumada/self-control/releases)
+1. Download the latest `MonkMode-X.X.X.dmg` from [Releases](https://github.com/gilbertsahumada/monk-mode/releases)
 2. Mount the DMG and drag `SelfControl.app` to Applications
 3. **First launch only** — the app is ad-hoc signed (not notarized with Apple), so macOS Gatekeeper will block it. Run this once in Terminal to allow it:
    ```bash
@@ -36,8 +36,8 @@ Built with Swift 5.9+ and SwiftUI. Requires macOS 13 (Ventura) or later.
 ### Option 2: Build from Source
 
 ```bash
-git clone https://github.com/gilbertsahumada/self-control.git
-cd self-control
+git clone https://github.com/gilbertsahumada/monk-mode.git
+cd monk-mode
 swift build -c release
 ```
 
@@ -108,7 +108,7 @@ swift test
 cd web && yarn build
 ```
 
-Landing page: `https://gilbertsahumada.github.io/self-control/`
+Landing page: `https://gilbertsahumada.github.io/monk-mode/`
 
 Release instructions: see `RELEASE.md`.
 

@@ -42,7 +42,7 @@ git push origin v1.0.0
 - Public URL:
 
 ```text
-https://gilbertsahumada.github.io/self-control/
+https://gilbertsahumada.github.io/monk-mode/
 ```
 
 ## Download link behavior
@@ -50,7 +50,7 @@ https://gilbertsahumada.github.io/self-control/
 The web app reads the latest release dynamically from:
 
 ```text
-https://api.github.com/repos/gilbertsahumada/self-control/releases/latest
+https://api.github.com/repos/gilbertsahumada/monk-mode/releases/latest
 ```
 
 It automatically picks the first asset ending in `.dmg`.

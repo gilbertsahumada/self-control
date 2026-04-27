@@ -1,5 +1,5 @@
 const OWNER = 'gilbertsahumada'
-const REPO = 'self-control'
+const REPO = 'monk-mode'
 
 const STEPS = [
   {

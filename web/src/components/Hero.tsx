@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const OWNER = 'gilbertsahumada'
-const REPO = 'self-control'
+const REPO = 'monk-mode'
 const API_URL = `https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`
 const FALLBACK_VERSION = 'v1.0.0'
 const FALLBACK_DMG = `https://github.com/${OWNER}/${REPO}/releases/latest`
