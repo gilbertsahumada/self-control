@@ -47,7 +47,7 @@
       <text x="120" y="0" fill="#a0c8a5">native swiftui · zero telemetry · open source</text>
     </g>
 
-    <text x="0" y="375" font-size="14" fill="#5a8060" opacity="0.8">github.com/gilbertsahumada/self-control</text>
+    <text x="0" y="375" font-size="14" fill="#5a8060" opacity="0.8">github.com/gilbertsahumada/monk-mode</text>
   </g>
 
   <!-- Scanline overlay (above content, with multiply blend) -->

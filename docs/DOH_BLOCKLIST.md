@@ -1,6 +1,6 @@
 # DoH Blocklist Update Design
 
-Status: draft. Implementation tracked in [#26](https://github.com/gilbertsahumada/self-control/issues/26).
+Status: draft. Implementation tracked in [#26](https://github.com/gilbertsahumada/monk-mode/issues/26).
 Depends on the signing infrastructure tracked in Phase 3 (#19).
 
 ## Problem

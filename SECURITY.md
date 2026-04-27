@@ -22,7 +22,7 @@ reference but should be considered end-of-life on release of their successor.
 use one of the private channels below:
 
 1. **Preferred — GitHub Security Advisories**
-   Visit [Security → Advisories → Report a vulnerability](https://github.com/gilbertsahumada/self-control/security/advisories/new)
+   Visit [Security → Advisories → Report a vulnerability](https://github.com/gilbertsahumada/monk-mode/security/advisories/new)
    on this repository. GitHub routes the report directly to the maintainers
    with no intermediate party.
 2. **Email** — `gilbertsahumada@gmail.com`. Use subject line
@@ -107,6 +107,6 @@ The following are documented trade-offs, not vulnerabilities:
 ## Living documents
 
 This policy lives in the repository alongside [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
-and the security tracker in [issue #14](https://github.com/gilbertsahumada/self-control/issues/14).
+and the security tracker in [issue #14](https://github.com/gilbertsahumada/monk-mode/issues/14).
 Both are updated as the project evolves; pull requests that materially
 change security posture must update them.
