@@ -1,4 +1,4 @@
-.PHONY: build release run install clean test dmg reinstall uninstall
+.PHONY: build release run install clean test dmg reinstall uninstall sbom release-artifacts
 
 # Development
 build:
@@ -19,6 +19,16 @@ install: release
 
 dmg:
 	./scripts/build_dmg.sh
+
+sbom:
+	./scripts/generate_sbom.sh
+
+# Full release artifact set: signed (ad-hoc) DMG + SHA256SUMS + SBOM.
+# Output: dist/{MonkMode.app, MonkMode-1.0.0.dmg, SHA256SUMS, sbom.json}
+release-artifacts: dmg sbom
+	@echo ""
+	@echo "Release artifacts ready under dist/:"
+	@ls -la dist/MonkMode-*.dmg dist/SHA256SUMS dist/sbom.json 2>/dev/null
 
 # Rebuild the DMG, replace the /Applications copy, strip quarantine, and
 # launch the fresh app. Handy for dogfooding after every change.
