@@ -26,69 +26,68 @@ Built with Swift 5.9+ and SwiftUI. Requires macOS 13 (Ventura) or later.
 ### Option 1: DMG (Recommended)
 
 1. Download the latest `MonkMode-X.X.X.dmg` from [Releases](https://github.com/gilbertsahumada/monk-mode/releases)
-2. Mount the DMG and drag `SelfControl.app` to Applications
-3. **First launch only** — the app is ad-hoc signed (not notarized with Apple), so macOS Gatekeeper will block it. Run this once in Terminal to allow it:
+2. (Optional) Verify integrity: `shasum -a 256 -c SHA256SUMS`
+3. Mount the DMG and drag `MonkMode.app` to Applications
+4. **First launch only** — the app is ad-hoc signed (Phase 3 will swap to Developer ID + notarization). Run this once in Terminal:
    ```bash
-   xattr -cr /Applications/SelfControl.app
+   xattr -cr /Applications/MonkMode.app
    ```
-4. Open SelfControl from Applications — no further steps needed
+5. Open MonkMode from Applications — no further steps needed
 
 ### Option 2: Build from Source
 
 ```bash
 git clone https://github.com/gilbertsahumada/monk-mode.git
 cd monk-mode
-swift build -c release
+make reinstall   # builds DMG, copies to /Applications, strips quarantine, opens
 ```
 
-### Install Binaries
-
-```bash
-sudo cp .build/release/SelfControl /usr/local/bin/
-sudo cp .build/release/SelfControlEnforcer /usr/local/bin/
-```
+Other useful targets: `make dmg`, `make sbom`, `make release-artifacts`, `make uninstall`.
 
 ## Usage
 
 ```bash
-open /Applications/SelfControl.app
-# or
-.build/debug/SelfControl
+open /Applications/MonkMode.app
+# or, for development:
+make run         # runs .build/debug/MonkMode
 ```
 
 The app opens a native macOS window:
 
 ### Setup
 
-1. Toggle popular sites or type custom domains (comma-separated)
+1. Toggle preset sites (Instagram, Facebook, X, YouTube, TikTok, Reddit, LinkedIn) and/or add custom domains via the Enter-to-confirm chip input
 2. Set the duration (hours and minutes)
-3. Click **Start Blocking** and confirm
+3. Click **Execute Lockdown** and confirm
 4. Enter your admin password once — done
 
 ### Active Block
 
-- Live countdown timer (adaptive: 1s/<1hr, 10s/<1hr, 60s/>1hr)
-- Progress bar
-- Blocked sites list with subdomain counts
-- End time display
+- Live 1-second countdown timer
+- ASCII progress bar
+- Blocked sites list
+- Expiry time display
 
 ## How It Works
 
-1. **DNS-level**: Redirects blocked domains to `127.0.0.1` via `/etc/hosts`
-2. **Network-level**: Resolves domain IPs and creates `pf` firewall rules to block traffic
-3. **DoH blocking**: Blocks DNS-over-HTTPS providers so browsers can't bypass `/etc/hosts`
-4. **Privilege escalation**: Single `NSAppleScript` call with temp file execution
+1. **DNS-level**: redirects blocked domains to `127.0.0.1` and `::1` via `/etc/hosts` (IPv4 + IPv6 so AAAA lookups can't bypass)
+2. **Network-level**: resolves domain IPs and creates `pf` firewall rules to drop traffic
+3. **DoH blocking**: blocks DNS-over-HTTPS providers so browsers can't route around the system resolver
+4. **Privilege escalation**: single `NSAppleScript` call with every interpolated value escaped via `ShellQuote` (POSIX + AppleScript layers)
 5. **Enforcer daemon**: LaunchDaemon that checks every 60 seconds and re-applies blocks if tampered with
-6. **Smart re-apply**: Only writes files if hash changed (performance optimization)
-7. **Auto-cleanup**: When timer expires, removes all hosts entries, firewall rules, **disables pf**, config files, and unloads itself
+6. **Redundant cleanup**: secondary LaunchDaemon fires at exact `endTime` as a safety net
+7. **Auto-cleanup**: when timer expires, removes hosts entries, firewall rules, **disables pf**, config files, and unloads itself
 
 ## Architecture
 
+The Package.swift targets map to these source folders (folder names are
+historical; Swift module names are MonkMode/MonkModeCore/MonkModeEnforcer):
+
 ```
 Sources/
-  BlockSitesCore/       # Shared library — domain expansion, hosts generation, models
-  BlockSitesApp/        # SwiftUI macOS app — UI, view models, privilege escalation
-  BlockSitesEnforcer/   # Background daemon — re-enforces blocks every 60s
+  BlockSitesCore/       # MonkModeCore — Constants, ShellQuote, DomainValidator, HostsGenerator, PfConfCleaner, DaemonPlistBuilder
+  BlockSitesApp/        # MonkMode (SwiftUI app) — UI, view models, privileged executor
+  BlockSitesEnforcer/   # MonkModeEnforcer (LaunchDaemon) — 60 s re-apply + cleanup
 ```
 
 ## Development
