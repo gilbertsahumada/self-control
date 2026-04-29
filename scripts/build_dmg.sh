@@ -100,10 +100,26 @@ hdiutil create -volname "MonkMode" -srcfolder "$STAGING_DIR" -ov -format UDZO "d
 rm -rf "$STAGING_DIR"
 
 echo "DMG created at dist/MonkMode-${APP_VERSION}.dmg"
+
+# Emit SHA256SUMS so users can verify download integrity. The file lists
+# every artifact uploaded to a GitHub release; a single mismatched line
+# means the corresponding asset was tampered with in transit.
+echo "Generating SHA256SUMS..."
+(
+  cd dist
+  shasum -a 256 \
+    "MonkMode-${APP_VERSION}.dmg" \
+    "MonkMode.app/Contents/MacOS/MonkMode" \
+    "MonkMode.app/Contents/MacOS/MonkModeEnforcer" \
+    > "SHA256SUMS"
+)
+echo "SHA256SUMS written to dist/SHA256SUMS"
+
 echo ""
 echo "Distribution ready:"
 echo "   - dist/MonkMode.app"
 echo "   - dist/MonkMode-${APP_VERSION}.dmg"
+echo "   - dist/SHA256SUMS"
 echo ""
 echo "NOTE: This app is ad-hoc signed. Users downloading from the internet"
 echo "will need to remove the quarantine attribute before opening:"
