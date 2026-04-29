@@ -44,34 +44,59 @@ jobs:
         id: vars
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Build DMG
+      - name: Run full test suite (gate the release on the adversarial corpus)
+        run: swift test -c debug
+
+      - name: Build DMG (ad-hoc signed; Phase 3 swaps to Developer ID)
         run: |
           chmod +x scripts/build_dmg.sh
           VERSION=${{ steps.vars.outputs.version }} ./scripts/build_dmg.sh
 
-      - name: Verify DMG exists
+      - name: Generate SBOM
+        run: |
+          chmod +x scripts/generate_sbom.sh
+          ./scripts/generate_sbom.sh
+
+      # Phase 3 (#19) hook: when the Apple Developer ID cert is provisioned,
+      # add steps to import the cert from secrets, codesign with --options=runtime
+      # + --timestamp, then `xcrun notarytool submit … --wait` followed by
+      # `xcrun stapler staple`. The rest of the pipeline does not change.
+
+      - name: Verify release artifacts
         run: ls -la dist/
 
-      - name: Upload DMG
+      - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/SelfControl-${{ steps.vars.outputs.version }}.dmg
+          files: |
+            dist/MonkMode-${{ steps.vars.outputs.version }}.dmg
+            dist/SHA256SUMS
+            dist/sbom.json
           fail_on_unmatched_files: true
           draft: true
           body: |
             ## Installation
 
-            1. Download `SelfControl-${{ steps.vars.outputs.version }}.dmg`
-            2. Open the DMG and drag **SelfControl** to your Applications folder
-            3. **Important — first launch only:** this app is ad-hoc signed and not notarized with Apple, so macOS Gatekeeper will block it. Open Terminal and run:
+            1. Download `MonkMode-${{ steps.vars.outputs.version }}.dmg`.
+            2. Verify integrity (optional but recommended):
                ```
-               xattr -cr /Applications/SelfControl.app
+               shasum -a 256 -c SHA256SUMS
                ```
-               This removes the quarantine flag. You only need to do this once.
-            4. Open SelfControl from Applications — you're all set
+            3. Open the DMG and drag **MonkMode** to your Applications folder.
+            4. **First launch only** — this build is ad-hoc signed (Phase 3 will swap to Developer ID + Apple notarization). Run once:
+               ```
+               xattr -cr /Applications/MonkMode.app
+               ```
+            5. Open MonkMode from Applications.
 
-            ### Why is this needed?
-            Apple requires paid Developer ID certificates to notarize apps. SelfControl is free and open source, so it uses ad-hoc signing. The `xattr` command tells macOS you trust this app.
+            ## Verification artifacts
+
+            - `SHA256SUMS` — verifies the DMG and bundled binaries match what CI built.
+            - `sbom.json` — CycloneDX 1.5 SBOM enumerating every dependency the app ships.
+
+            ## Uninstall
+
+            Mount the DMG, run `sudo ./uninstall.sh`, then drag the app to the Trash.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
